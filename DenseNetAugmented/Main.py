@@ -5,7 +5,7 @@ from keras.preprocessing import image
 from keras.models import Model, load_model
 from keras.applications import imagenet_utils
 from helper_functions.ml_functions import get_cnn_model, img_metadata_generator, get_lstm_model, codes_metadata_generator
-from helper_functions.data_functions import prepare_data, calculate_class_weights
+from helper_functions.data_functions import prepare_train_data_rows
 import numpy as np
 import os
 
@@ -21,7 +21,7 @@ class DenseModel:
         :param params: global parameters, used to find location of the dataset and json file
         :return:
         """
-        self.params = params
+        self.params = vars(params)
 
         for arg in argv:
             """
@@ -31,22 +31,23 @@ class DenseModel:
             """
             performAll = (arg == '-all')
             if performAll or arg == '-cnn':
-                self.params.train_cnn = True
+                self.params['train_cnn'] = True
             if performAll or arg == '-codes':
-                self.params.generate_cnn_codes = True
+                self.params['generate_cnn_codes'] = True
             if performAll or arg == '-lstm':
-                self.params.train_lstm = True
+                self.params['train_lstm'] = True
             if performAll or arg == '-test':
-                self.params.test_cnn = True
-                self.params.test_lstm = True
+                self.params['test_cnn'] = True
+                self.params'[test_lstm'] = True
             if performAll or arg == '-test_cnn':
-                self.params.test_cnn = True
+                self.params['test_cnn'] = True
             if performAll or arg == '-test_lstm':
-                self.params.test_lstm = True
+                self.params['test_lstm'] = True
 
             if arg == '-nm':
-                self.params.use_metadata = False
+                self.params['use_metadata'] = False
 
+        """
         if self.params.use_metadata:
             self.params.files['cnn_model'] = os.path.join(self.params.directories['cnn_models'], 'cnn_model_with_metadata.model')
             self.params.files['lstm_model'] = os.path.join(self.params.directories['lstm_models'], 'lstm_model_with_metadata.model')
@@ -59,6 +60,7 @@ class DenseModel:
             self.params.files['cnn_codes_stats'] = os.path.join(self.params.directories['working'], 'cnn_codes_stats_no_metadata.json')
             self.params.files['lstm_training_struct'] = os.path.join(self.params.directories['working'], 'lstm_training_struct_no_metadata.json')
             self.params.files['lstm_test_struct'] = os.path.join(self.params.directories['working'], 'lstm_test_struct_no_metadata.json')
+        """
 
     def train_cnn(self):
         """
@@ -71,19 +73,24 @@ class DenseModel:
         metadataStats = json.load(open(self.params.files['dataset_stats']))
         '''
 
+        trainData = prepare_train_data_rows(self.params)
+        # {img_path, country_OH, continent_OH, label} for each train data row
+
+        #train_datagen = img_metadata_generator(self.params, trainData, metadataStats)
+        train_datagen = img_metadata_generator(self.params, trainData)
+
         model = get_cnn_model(self.params)
         #model = make_parallel(model, 4)
         model.compile(optimizer=Adam(lr=self.params.cnn_adam_learning_rate), loss='categorical_crossentropy', metrics=['accuracy'])
 
-        #train_datagen = img_metadata_generator(self.params, trainData, metadataStats)
-        train_datagen = img_metadata_generator(self.params)
+        print("Training...")
 
-        print("training")
         filePath = os.path.join(self.params.directories['cnn_checkpoint_weights'], 'weights.{epoch:02d}.hdf5')
-        checkpoint = ModelCheckpoint(filepath=filePath, monitor='loss', verbose=0, save_best_only=False,
+        checkpoint = ModelCheckpoint(filepath=filePath, monitor='loss', verbose=1, save_best_only=False,
                                      save_weights_only=False, mode='auto', period=5)
         callbacks_list = [checkpoint]
 
+        #callbacks_list = []
         model.fit_generator(train_datagen,
                             steps_per_epoch=(len(trainData) / self.params.batch_size_cnn + 1),
                             epochs=self.params.cnn_epochs, callbacks=callbacks_list)

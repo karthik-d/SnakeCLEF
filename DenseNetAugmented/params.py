@@ -34,7 +34,13 @@ lstm_loss = 'categorical_crossentropy'
 #DIRECTORIES AND FILES
 directories = dict()
 directories['basepath'] = os.path.abspath(os.pardir)
+directories['attemptpath'] = os.path.join(directories['basepath'], 'DenseNetAugmented')
+directories['dynamic'] = os.path.join(directories['attemptpath'], 'dynamic')
+directories['output'] = os.path.join(directories['attemptpath'], 'output')
 directories['dataset'] = os.path.join(directories['basepath'], "Datasets", "SnakeCLEF-2021")
+directories['cnn_checkpoint_weights'] = os.path.join(directories['dynamic'], 'cnn_checkpoint_weights')
+
+"""
 directories['input'] = os.path.join('..', 'data', 'input')
 directories['output'] = os.path.join('..', 'data', 'output')
 directories['working'] = os.path.join('..', 'data', 'working')
@@ -43,17 +49,22 @@ directories['test_data'] = os.path.join(directories['input'], 'test_data')
 directories['cnn_models'] = os.path.join(directories['working'], 'cnn_models')
 directories['lstm_models'] = os.path.join(directories['working'], 'lstm_models')
 directories['predictions'] = os.path.join(directories['output'], 'predictions')
-directories['cnn_checkpoint_weights'] = os.path.join(directories['working'], 'cnn_checkpoint_weights')
+#directories['cnn_checkpoint_weights'] = os.path.join(directories['working'], 'cnn_checkpoint_weights')
 directories['lstm_checkpoint_weights'] = os.path.join(directories['working'], 'lstm_checkpoint_weights')
+"""
 
-directories['cnn_codes'] = os.path.join(directories['working'], 'cnn_codes')
+#directories['cnn_codes'] = os.path.join(directories['working'], 'cnn_codes')
 
-files = {}
-files['dataparams'] = os.path.join(directories['basepath'], "DenseNetAugmented", "microtrain_metadata.csv")
+files = dict()
+files['train_dataparams'] = os.path.join(directories['attemptpath'], "microtrain_metadata.csv")
+files['cnn_model'] = os.path.join(directories['output'], 'cnn_model.h5')
+
+"""
 files['training_struct'] = os.path.join(directories['working'], 'training_struct.json')
 files['test_struct'] = os.path.join(directories['working'], 'test_struct.json')
 files['dataset_stats'] = os.path.join(directories['working'], 'dataset_stats.json')
 files['class_weight'] = os.path.join(directories['working'], 'class_weights.json')
+"""
 
 
 """
@@ -62,8 +73,8 @@ category_names = ['false_detection', 'airport', 'airport_hangar', 'airport_termi
 category_count = 772
 category_names = [ x for x in range(category_count) ]
 
-country_count = 99+1   # 99 countries + 1 unknown
-country_names = ['Angola', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Bahamas', 'Belarus', 'Belgium', 'Belize', 'Bhutan', 'Bolivia', 'Botswana', 'Brazil', 'Bulgaria', 'Burma', 'Cambodia', 'Canada', 'Cayman Islands', 'Chile', 'China', 'Colombia', 'Costa Rica', 'Croatia', 'Czech Republic', 'Denmark', 'East Timor', 'Ecuador', 'El Salvador', 'Ethiopia', 'Finland', 'France', 'French Guiana', 'Georgia', 'Germany', 'Greece', 'Guatemala', 'Guyana', 'Haiti', 'Honduras', 'Hong Kong', 'Hong Kong S.A.R.', 'India', 'Indonesia', 'Israel', 'Italy', 'Japan', 'Kenya', 'Kosovo', 'Laos', 'Latvia', 'Lebanon', 'Lithuania', 'Madagascar', 'Malawi', 'Malaysia', 'Mexico', 'Mongolia', 'Morocco', 'Mozambique', 'Namibia', 'Nepal', 'Netherlands', 'Nicaragua', 'Nigeria', 'Pakistan', 'Panama', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Puerto Rico', 'Republic of Serbia', 'Romania', 'Russia', 'Rwanda', 'Seychelles', 'Singapore', 'Slovenia', 'South Africa', 'South Korea', 'Spain', 'Sri Lanka', 'Swaziland', 'Sweden', 'Switzerland', 'Taiwan', 'Tanzania', 'Thailand', 'Togo', 'Trinidad and Tobago', 'Ukraine', 'United Kingdom', 'United States of America', 'Uruguay', 'Venezuela', 'Vietnam', 'Zambia', 'Zimbabwe', 'unknown']
+country_count = 187+1   # 187 countries + 1 unknown
+country_names = ['Afghanistan', 'Albania', 'Algeria', 'Angola', 'Argentina', 'Armenia', 'Aruba', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'British Virgin Islands', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burma', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cayman Islands', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic', 'Democratic Republic of the Congo', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'East Timor', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Estonia', 'Ethiopia', 'Fiji', 'Finland', 'France', 'French Guiana', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Guam', 'Guatemala', 'Guinea', 'Guinea Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hong Kong', 'Hong Kong S.A.R.', 'Hungary', 'India', 'Indian Ocean Territories', 'Indonesia', 'Iran', 'Iraq', 'Israel', 'Italy', 'Ivory Coast', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kosovo', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Libya', 'Lithuania', 'Luxembourg', 'Macau S.A.R', 'Macedonia', 'Madagascar', 'Malawi', 'Malaysia', 'Mali', 'Malta', 'Mauritania', 'Mauritius', 'Mexico', 'Moldova', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Namibia', 'Nepal', 'Netherlands', 'New Caledonia', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'Northern Cyprus', 'Northern Mariana Islands', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Puerto Rico', 'Qatar', 'Republic of Congo', 'Republic of Serbia', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Samoa', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Swaziland', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States of America', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Venezuela', 'Vietnam', 'Virgin Islands, U.S.', 'West Bank', 'Yemen', 'Zambia', 'Zimbabwe', 'unknown']
 country_one_hot = [ [0.0 for x in range(y)]+[1.0]+[0.0 for x in range(country_count-y-1)] for y in range(country_count) ]
 map_country_one_hot = dict(zip(country_names, country_one_hot))
 
@@ -74,7 +85,7 @@ map_continent_one_hot = dict(zip(continent_names, continent_one_hot))
 
 num_labels = category_count
 
-dataset_size = len(list(csv.reader(open(files['dataparams']))))
+#train_data_size = len(list(csv.reader(open(files['dataparams']))))
 
 for directory in directories.values():
     if not os.path.isdir(directory):

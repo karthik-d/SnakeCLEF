@@ -1,19 +1,20 @@
-import json
+#import json
 import os
-import errno
-import numpy as np
-import string
+#import errno
+#import numpy as np
+#import string
 #import dateutil.parser as dparser
-from PIL import Image
-from sklearn.utils import class_weight
+#from PIL import Image
+#from sklearn.utils import class_weight
 from keras.preprocessing import image
-from concurrent.futures import ProcessPoolExecutor
-from functools import partial
-from tqdm import tqdm
-import warnings
+#from concurrent.futures import ProcessPoolExecutor
+#from functools import partial
+#from tqdm import tqdm
+#import warnings
 import cv2
+import pandas as pd
 
-
+'''
 def prepare_data(params):
     """
     Saves sub images, converts metadata to feature vectors and saves in JSON files,
@@ -84,7 +85,9 @@ def prepare_data(params):
     json.dump(trainingData, open(params.files['training_struct'], 'w'))
     # trainingData contains a dictionary with features_json_path, img_jpg_path, category_name for each train_set
     json.dump(metadataStats, open(params.files['dataset_stats'], 'w'))
+'''
 
+'''
 def _process_file(file, slashes, root, isTrain, outDir, params):
     """
     Helper for prepare_data that actually loads and resizes each image and computes
@@ -216,6 +219,31 @@ def _process_file(file, slashes, root, isTrain, outDir, params):
             allResults.append((None, None, {"features_path": featuresPath, "img_path": imgPath}))
 
     return allResults
+'''
+
+def prepare_train_data_rows(params):
+    dataparams = pd.read_csv(params['files']['train_dataparams'])
+
+    # DONT RESIZE HERE, TO REDUCE PROCESSING OVERHEAD
+    train_data = list()
+    for idx,row in dataparams.iterrows():
+        data_elem = dict()
+
+        img_path = os.path.join(params['directories']['basepath'], row['image_path'][1:])
+        data_elem['img_path'] = img_path
+
+        country_one_hot = params['map_country_one_hot'][row['country']]
+        data_elem['meta_country'] = country_one_hot
+
+        continent_one_hot = params['map_continent_one_hot'][row['continent']]
+        data_elem['meta_continent'] = continent_one_hot
+
+        y_label = row['class_id']
+        data_elem['label'] = y_label
+
+        train_data.append(data_elem)
+
+    return train_data
 
 '''
 def json_to_feature_vector(params, jsonData, bb):
@@ -283,12 +311,7 @@ def json_to_feature_vector(params, jsonData, bb):
     return features
 '''
 
-def generate_feature_vector(params, csv_row):
-    features = np.zeros(params['metadata_length'], dtype=float)
-    features[0] = params.map_country_one_hot[csv_row['country']]
-    features[1] = params.map_country_one_hot[csv_row['continent']]
-    return features
-
+'''
 def utm_to_xy(zone):
     """
     Converts UTM zone to x,y values between 0 and 1.
@@ -307,6 +330,7 @@ def utm_to_xy(zone):
     x = float(numIndex) / float(len(nums)-1)
     y = float(letterIndex) / float(len(letters)-1)
     return (x,y)
+'''
 
 ## USE AS IS
 def get_batch_inds(batch_size, idx, N):
@@ -332,6 +356,7 @@ def get_batch_inds(batch_size, idx, N):
 
     return batchInds
 
+'''
 def calculate_class_weights(params):
     """
     Computes the class weights for the training data and writes out to a json file
@@ -355,3 +380,4 @@ def calculate_class_weights(params):
 
     with open(params.files['class_weight'], 'w') as json_file:
         json.dump(classWeights.tolist(), json_file)
+'''

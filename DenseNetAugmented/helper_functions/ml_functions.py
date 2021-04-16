@@ -21,8 +21,8 @@ def get_cnn_model(params):
     :return model: CNN model with or without depending on params
     """
 
-    input_tensor = Input(shape=(params.target_img_size[0],params.target_img_size[1],params.num_channels))
-    baseModel = densenet.DenseNetImageNet161(input_shape=(params.target_img_size[0], params.target_img_size[1], params.num_channels), include_top=False, input_tensor=input_tensor)
+    input_tensor = Input(shape=(params['target_img_size'][0],params['target_img_size'][1],params['num_channels']))
+    baseModel = densenet.DenseNetImageNet161(input_shape=(params.target_img_size[0], params['target_img_size'][1], params['num_channels']), include_top=False, input_tensor=input_tensor)
 
     modelStruct = baseModel.layers[-1].output
 
@@ -40,7 +40,7 @@ def get_cnn_model(params):
     if not params.use_metadata:
         model = Model(input=[baseModel.input], output=predictions)
     else:
-        model = Model(input=[baseModel.input, auxiliary_input], output=predictions)
+        model = Model(input=[baseModel.input, auxiliary_input_country, auxiliary_input_continent], output=predictions)
 
     for i,layer in enumerate(model.layers):
         layer.trainable = True
@@ -97,7 +97,7 @@ def img_metadata_generator(params, data, metadataStats):
                 yield (imgdata, labels)
 '''
 
-def img_metadata_generator(params):
+def img_metadata_generator(params, data_params):
     """
     Custom generator that yields images or (image,metadata) batches and their
     category labels (categorical format).
@@ -105,23 +105,23 @@ def img_metadata_generator(params):
     :yield (imgdata,labels) or (imgdata,metadata,labels): image data, metadata (if params set to use), and labels (categorical form)
     """
 
-    N = params.dataset_size
+
+    N = len(data_params)
 
     idx = np.random.permutation(N)
 
-    batchInds = get_batch_inds(params.batch_size_cnn, idx, N)
-
-    executor = ProcessPoolExecutor(max_workers=params.num_workers)
+    batchInds = get_batch_inds(params['batch_size_cnn'], idx, N)
 
     while True:
         for inds in batchInds:
-            batchData = [data[ind] for ind in inds]
-            imgdata, metadata, labels = load_cnn_batch(params, batchData, metadataStats, executor)
-            if params.use_metadata:
-                yield ([imgdata, metadata], labels)
+            batchData = [data_params[ind] for ind in inds]
+            imgdata, metadata_country, metadata_continent, labels = load_cnn_batch(params, batchData)
+            if params['use_metadata']:
+                yield ([imgdata, metadata_country, metadata_continent], labels)
             else:
                 yield (imgdata, labels)
 
+'''
 def load_cnn_batch(params, batchData, metadataStats, executor):
     """
     Load batch of images and metadata and preprocess the data before returning.
@@ -157,7 +157,50 @@ def load_cnn_batch(params, batchData, metadataStats, executor):
     labels = to_categorical(labels, params.num_labels)
 
     return imgdata, metadata, labels
+'''
 
+def load_cnn_batch(params, batchData):
+    """
+    Load batch of images and metadata and preprocess the data before returning.
+    :param params: global parameters, used to find location of the dataset and json file
+    :param batchData: list of objects in the current batch containing the category labels and paths to CNN codes and images
+    :param metadataStats: metadata stats used to normalize metadata features
+    :return imgdata,metadata,labels: numpy arrays containing the image data, metadata, and labels (categorical form)
+    """
+
+    futures = []
+    imgdata = np.zeros((params['batch_size_cnn'], params['target_img_size'][0],
+                        params['target_img_size'][1], params['num_channels']))
+    metadata_country = np.zeros((params['batch_size_cnn'], params['country_count']))
+    metadata_continent = np.zeros((params['batch_size_cnn'], params['continent_count']))
+    labels = np.zeros(params['batch_size_cnn'])   # Extended to OH later
+
+    # Threaded processing
+    executor = ProcessPoolExecutor(max_workers=params['num_workers'])
+
+    for i in range(len(batchData)):
+        task = partial(_load_batch_helper, batchData[i], params)   # batchData[i] is a dictionary
+        futures.append(executor.submit(task))
+
+    # list of dictionaries (described in next function), one per x_data in the batch
+    results = [future.result() for future in futures]
+
+    for i, result in enumerate(results):
+        metadata_country[i, :] = result['meta_country']
+        metadata_continent[i, :] = result['meta_continent']
+        imgdata[i, :, :, :] = result['img']
+        labels[i] = result['label']
+
+    # Preprocess and Normalize
+    imgdata = imagenet_utils.preprocess_input(imgdata)
+    imgdata = imgdata / 255.0
+
+    # OH Vectorize
+    labels = to_categorical(labels, params['num_labels'])
+
+    return imgdata, metadata_country, metadata_continent, labels
+
+'''
 def _load_batch_helper(inputDict):
     """
     Helper for load_cnn_batch that actually loads imagery and supports parallel processing
@@ -177,6 +220,26 @@ def _load_batch_helper(inputDict):
     currOutput['labels'] = labels
     # A dictionary of img as 3D numpy array, metadata after mean-normalization, label name
     return currOutput
+'''
+
+def _load_batch_helper(data_dict, params):
+    """
+    Helper for load_cnn_batch that actually loads imagery and supports parallel processing
+    :param inputDict: dict containing the data and metadataStats that will be used to load imagery
+    :return currOutput: dict with image data, metadata, and the associated label
+    """
+    loaded_data = dict()
+
+    img = cv2.imread(data_dict['img_path']).astype(np.float32)
+    img = cv2.resize(img, params['target_img_size']).astype(np.uint8)
+    loaded_data['img'] = img
+
+    loaded_data['meta_country'] = data_dict['meta_country']
+    loaded_data['meta_continent'] = data_dcit['meta_continent']
+    loaded_data['label'] = data_dict['label']
+
+    # A dictionary of img as 3D numpy array, metadata, label id
+    return loaded_data
 
 def codes_metadata_generator(params, data, metadataStats, codesStats):
     """
@@ -191,10 +254,10 @@ def codes_metadata_generator(params, data, metadataStats, codesStats):
 
     idx = np.random.permutation(N)
 
-    batchInds = get_batch_inds(params.batch_size_lstm, idx, N)
+    batchInds = get_batch_inds(params['batch_size_lstm'], idx, N)
     trainKeys = list(data.keys())
 
-    executor = ProcessPoolExecutor(max_workers=params.num_workers)
+    executor = ProcessPoolExecutor(max_workers=params['num_workers'])
 
     while True:
         for inds in batchInds:
@@ -213,12 +276,12 @@ def load_lstm_batch(params, data, batchKeys, metadataStats, codesStats, executor
     :return codesMetadata,labels: CNN codes + metadata (if set) and labels (categorical form)
     """
 
-    if params.use_metadata:
-        codesMetadata = np.zeros((params.batch_size_lstm, codesStats['max_temporal'], params.cnn_lstm_layer_length+params.metadata_length))
+    if params['use_metadata']:
+        codesMetadata = np.zeros((params['batch_size_lstm'], codesStats['max_temporal'], params['cnn_lstm_layer_length']+params['metadata_length']))
     else:
-        codesMetadata = np.zeros((params.batch_size_lstm, codesStats['max_temporal'], params.cnn_lstm_layer_length))
+        codesMetadata = np.zeros((params['batch_size_lstm'], codesStats['max_temporal'], params['cnn_lstm_layer_length']))
 
-    labels = np.zeros(params.batch_size_lstm)
+    labels = np.zeros(params['batch_size_lstm'])
 
     futures = []
     for i,key in enumerate(batchKeys):
@@ -226,7 +289,7 @@ def load_lstm_batch(params, data, batchKeys, metadataStats, codesStats, executor
         currInput['currData'] = data[key]
         currInput['lastLayerLength'] = codesMetadata.shape[2]
         currInput['codesStats'] = codesStats
-        currInput['use_metadata'] = params.use_metadata
+        currInput['use_metadata'] = params['use_metadata']
         currInput['metadataStats'] = metadataStats
         labels[i] = data[key]['category']
 
@@ -238,7 +301,7 @@ def load_lstm_batch(params, data, batchKeys, metadataStats, codesStats, executor
     for i,result in enumerate(results):
         codesMetadata[i,:,:] = result['codesMetadata']
 
-    labels = to_categorical(labels, params.num_labels)
+    labels = to_categorical(labels, params['num_labels'])
     # generates one-hot vector for each batch element -> 2D binary matrix
 
     return codesMetadata,labels
