@@ -8,7 +8,7 @@ use_metadata = True
 batch_size_cnn = 128
 batch_size_lstm = 512
 batch_size_eval = 128
-metadata_length = 45 ##?
+metadata_length = 2  # No of features
 num_channels = 3
 cnn_lstm_layer_length = 2208
 
@@ -33,7 +33,8 @@ lstm_loss = 'categorical_crossentropy'
 
 #DIRECTORIES AND FILES
 directories = dict()
-directories['dataset'] = '../../fmow_dataset'
+directories['basepath'] = os.path.abspath(os.pardir)
+directories['dataset'] = os.path.join(directories['basepath'], "Datasets", "SnakeCLEF-2021")
 directories['input'] = os.path.join('..', 'data', 'input')
 directories['output'] = os.path.join('..', 'data', 'output')
 directories['working'] = os.path.join('..', 'data', 'working')
@@ -48,6 +49,7 @@ directories['lstm_checkpoint_weights'] = os.path.join(directories['working'], 'l
 directories['cnn_codes'] = os.path.join(directories['working'], 'cnn_codes')
 
 files = {}
+files['dataparams'] = os.path.join(directories['basepath'], "DenseNetAugmented", "microtrain_metadata.csv")
 files['training_struct'] = os.path.join(directories['working'], 'training_struct.json')
 files['test_struct'] = os.path.join(directories['working'], 'test_struct.json')
 files['dataset_stats'] = os.path.join(directories['working'], 'dataset_stats.json')
@@ -60,7 +62,19 @@ category_names = ['false_detection', 'airport', 'airport_hangar', 'airport_termi
 category_count = 772
 category_names = [ x for x in range(category_count) ]
 
-num_labels = len(category_names)
+country_count = 99+1   # 99 countries + 1 unknown
+country_names = ['Angola', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Bahamas', 'Belarus', 'Belgium', 'Belize', 'Bhutan', 'Bolivia', 'Botswana', 'Brazil', 'Bulgaria', 'Burma', 'Cambodia', 'Canada', 'Cayman Islands', 'Chile', 'China', 'Colombia', 'Costa Rica', 'Croatia', 'Czech Republic', 'Denmark', 'East Timor', 'Ecuador', 'El Salvador', 'Ethiopia', 'Finland', 'France', 'French Guiana', 'Georgia', 'Germany', 'Greece', 'Guatemala', 'Guyana', 'Haiti', 'Honduras', 'Hong Kong', 'Hong Kong S.A.R.', 'India', 'Indonesia', 'Israel', 'Italy', 'Japan', 'Kenya', 'Kosovo', 'Laos', 'Latvia', 'Lebanon', 'Lithuania', 'Madagascar', 'Malawi', 'Malaysia', 'Mexico', 'Mongolia', 'Morocco', 'Mozambique', 'Namibia', 'Nepal', 'Netherlands', 'Nicaragua', 'Nigeria', 'Pakistan', 'Panama', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Puerto Rico', 'Republic of Serbia', 'Romania', 'Russia', 'Rwanda', 'Seychelles', 'Singapore', 'Slovenia', 'South Africa', 'South Korea', 'Spain', 'Sri Lanka', 'Swaziland', 'Sweden', 'Switzerland', 'Taiwan', 'Tanzania', 'Thailand', 'Togo', 'Trinidad and Tobago', 'Ukraine', 'United Kingdom', 'United States of America', 'Uruguay', 'Venezuela', 'Vietnam', 'Zambia', 'Zimbabwe', 'unknown']
+country_one_hot = [ [0.0 for x in range(y)]+[1.0]+[0.0 for x in range(country_count-y-1)] for y in range(country_count) ]
+map_country_one_hot = dict(zip(country_names, country_one_hot))
+
+continent_count = 7+1   # 1 unknown
+continent_names = ['Africa', 'Asia', 'Australia', 'Europe', 'North America', 'Oceania', 'South America', 'unknown']
+continent_one_hot = [ [0.0 for x in range(y)]+[1.0]+[0.0 for x in range(continent_count-y-1)] for y in range(continent_count) ]
+map_continent_one_hot = dict(zip(continent_names, continent_one_hot))
+
+num_labels = category_count
+
+dataset_size = len(list(csv.reader(open(files['dataparams']))))
 
 for directory in directories.values():
     if not os.path.isdir(directory):

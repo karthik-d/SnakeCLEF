@@ -24,9 +24,11 @@ class DenseModel:
         self.params = params
 
         for arg in argv:
+            """
             if arg == '-prepare':
                 prepare_data(params)
                 calculate_class_weights(params)
+            """
             performAll = (arg == '-all')
             if performAll or arg == '-cnn':
                 self.params.train_cnn = True
@@ -64,15 +66,17 @@ class DenseModel:
         :param:
         :return:
         """
-
+        '''
         trainData = json.load(open(self.params.files['training_struct']))
         metadataStats = json.load(open(self.params.files['dataset_stats']))
+        '''
 
         model = get_cnn_model(self.params)
         #model = make_parallel(model, 4)
         model.compile(optimizer=Adam(lr=self.params.cnn_adam_learning_rate), loss='categorical_crossentropy', metrics=['accuracy'])
 
-        train_datagen = img_metadata_generator(self.params, trainData, metadataStats)
+        #train_datagen = img_metadata_generator(self.params, trainData, metadataStats)
+        train_datagen = img_metadata_generator(self.params)
 
         print("training")
         filePath = os.path.join(self.params.directories['cnn_checkpoint_weights'], 'weights.{epoch:02d}.hdf5')

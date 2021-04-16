@@ -8,6 +8,9 @@ tensorflow_backend --> keras.backend.tensorflow_backend
 
 ! category_names >> params.py
 + category_count >> params.py
+! generate_feature_vector >> data_functions.py
++ country_one_hot >> params.py
++ continent_one_hot >> params.py
 
 [ TO CLARIFY ]
 params.metadata_length ?

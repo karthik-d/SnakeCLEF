@@ -27,8 +27,9 @@ def get_cnn_model(params):
     modelStruct = baseModel.layers[-1].output
 
     if params.use_metadata:
-        auxiliary_input = Input(shape=(params.metadata_length,), name='aux_input')
-        modelStruct = merge([modelStruct,auxiliary_input],'concat')
+        auxiliary_input_country = Input(shape=(params.country_count,), name='aux_input_coun')
+        auxiliary_input_continent = Input(shape=(params.continent_count,), name='aux_input_cont')
+        modelStruct = merge([modelStruct,auxiliary_input_country,auxiliary_input_continent],'concat')
 
     modelStruct = Dense(params.cnn_lstm_layer_length, activation='relu', name='fc1')(modelStruct)
     modelStruct = Dropout(0.5)(modelStruct)
@@ -67,7 +68,7 @@ def get_lstm_model(params, codesStats):
     model.add(Dense(params.num_labels, activation='softmax'))
     return model
 
-
+'''
 def img_metadata_generator(params, data, metadataStats):
     """
     Custom generator that yields images or (image,metadata) batches and their
@@ -79,6 +80,32 @@ def img_metadata_generator(params, data, metadataStats):
     """
 
     N = len(data)
+
+    idx = np.random.permutation(N)
+
+    batchInds = get_batch_inds(params.batch_size_cnn, idx, N)
+
+    executor = ProcessPoolExecutor(max_workers=params.num_workers)
+
+    while True:
+        for inds in batchInds:
+            batchData = [data[ind] for ind in inds]
+            imgdata, metadata, labels = load_cnn_batch(params, batchData, metadataStats, executor)
+            if params.use_metadata:
+                yield ([imgdata, metadata], labels)
+            else:
+                yield (imgdata, labels)
+'''
+
+def img_metadata_generator(params):
+    """
+    Custom generator that yields images or (image,metadata) batches and their
+    category labels (categorical format).
+    :param params: global parameters, used to find location of the dataset
+    :yield (imgdata,labels) or (imgdata,metadata,labels): image data, metadata (if params set to use), and labels (categorical form)
+    """
+
+    N = params.dataset_size
 
     idx = np.random.permutation(N)
 
@@ -117,6 +144,7 @@ def load_cnn_batch(params, batchData, metadataStats, executor):
         futures.append(executor.submit(task))
 
     results = [future.result() for future in futures]
+    # list of dictionaries (described in next function), one per x_data in the batch
 
     for i, result in enumerate(results):
         metadata[i, :] = result['metadata']
@@ -147,6 +175,7 @@ def _load_batch_helper(inputDict):
     currOutput['img'] = img
     currOutput['metadata'] = metadata
     currOutput['labels'] = labels
+    # A dictionary of img as 3D numpy array, metadata after mean-normalization, label name
     return currOutput
 
 def codes_metadata_generator(params, data, metadataStats, codesStats):
@@ -210,6 +239,7 @@ def load_lstm_batch(params, data, batchKeys, metadataStats, codesStats, executor
         codesMetadata[i,:,:] = result['codesMetadata']
 
     labels = to_categorical(labels, params.num_labels)
+    # generates one-hot vector for each batch element -> 2D binary matrix
 
     return codesMetadata,labels
 

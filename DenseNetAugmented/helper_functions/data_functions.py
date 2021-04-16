@@ -82,6 +82,7 @@ def prepare_data(params):
     metadataStats['metadata_max'] = metadataMax.tolist()
     json.dump(testData, open(params.files['test_struct'], 'w'))
     json.dump(trainingData, open(params.files['training_struct'], 'w'))
+    # trainingData contains a dictionary with features_json_path, img_jpg_path, category_name for each train_set
     json.dump(metadataStats, open(params.files['dataset_stats'], 'w'))
 
 def _process_file(file, slashes, root, isTrain, outDir, params):
@@ -216,7 +217,7 @@ def _process_file(file, slashes, root, isTrain, outDir, params):
 
     return allResults
 
-
+'''
 def json_to_feature_vector(params, jsonData, bb):
     features = np.zeros(params['metadata_length'], dtype=float)
     features[0] = float(jsonData['gsd'])
@@ -280,6 +281,13 @@ def json_to_feature_vector(params, jsonData, bb):
         features[44] = 0.0
 
     return features
+'''
+
+def generate_feature_vector(params, csv_row):
+    features = np.zeros(params['metadata_length'], dtype=float)
+    features[0] = params.map_country_one_hot[csv_row['country']]
+    features[1] = params.map_country_one_hot[csv_row['continent']]
+    return features
 
 def utm_to_xy(zone):
     """
@@ -300,6 +308,7 @@ def utm_to_xy(zone):
     y = float(letterIndex) / float(len(letters)-1)
     return (x,y)
 
+## USE AS IS
 def get_batch_inds(batch_size, idx, N):
     """
     Generates an array of indices of length N
