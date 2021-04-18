@@ -9,6 +9,7 @@ from keras.utils.np_utils import to_categorical
 import numpy as np
 
 from .DenseNet import densenet
+from .EfficientNet import efficientnet
 from helper_functions.data_functions import get_batch_inds
 
 from concurrent.futures import ProcessPoolExecutor
@@ -24,6 +25,39 @@ def get_cnn_model(params):
 
     input_tensor = Input(shape=(params['target_img_size'][0],params['target_img_size'][1],params['num_channels']))
     baseModel = densenet.DenseNetImageNet161(input_shape=(params['target_img_size'][0], params['target_img_size'][1], params['num_channels']), include_top=False, input_tensor=input_tensor)
+
+    modelStruct = baseModel.layers[-1].output
+
+    if params['use_metadata']:
+        auxiliary_input_country = Input(shape=(params['country_count'],), name='aux_input_coun')
+        auxiliary_input_continent = Input(shape=(params['continent_count'],), name='aux_input_cont')
+        modelStruct = merge([modelStruct,auxiliary_input_country,auxiliary_input_continent],'concat')
+
+    modelStruct = Dense(params['cnn_lstm_layer_length'], activation='relu', name='fc1')(modelStruct)
+    modelStruct = Dropout(0.5)(modelStruct)
+    modelStruct = Dense(params['cnn_lstm_layer_length'], activation='relu', name='fc2')(modelStruct)
+    modelStruct = Dropout(0.5)(modelStruct)
+    predictions = Dense(params['num_labels'], activation='softmax')(modelStruct)
+
+    if not params['use_metadata']:
+        model = Model(input=[baseModel.input], output=predictions)
+    else:
+        model = Model(input=[baseModel.input, auxiliary_input_country, auxiliary_input_continent], output=predictions)
+
+    for i,layer in enumerate(model.layers):
+        layer.trainable = True
+
+    return model
+
+def get_effnet_model(params):
+    """
+    Load base CNN model and add metadata fusion layers if 'use_metadata' is set in params.py
+    :param params: global parameters, used to find location of the dataset and json file
+    :return model: CNN model with or without depending on params
+    """
+
+    input_tensor = Input(shape=(params['target_img_size'][0],params['target_img_size'][1],params['num_channels']))
+    baseModel = efficientnet.EfficientNetB7(input_shape=(params['target_img_size'][0], params['target_img_size'][1], params['num_channels']), include_top=False, input_tensor=input_tensor)
 
     modelStruct = baseModel.layers[-1].output
 

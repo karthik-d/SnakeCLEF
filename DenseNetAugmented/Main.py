@@ -4,7 +4,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.preprocessing import image
 from keras.models import Model, load_model
 from keras.applications import imagenet_utils
-from helper_functions.ml_functions import get_cnn_model, img_metadata_generator, get_lstm_model, codes_metadata_generator
+from helper_functions.ml_functions import get_cnn_model, get_effnet_model, img_metadata_generator, get_lstm_model, codes_metadata_generator
 from helper_functions.data_functions import prepare_train_data_rows
 import numpy as np
 import os
@@ -80,6 +80,42 @@ class DenseModel:
         train_datagen = img_metadata_generator(self.params.copy(), trainData)
 
         model = get_cnn_model(self.params.copy())
+        #model = make_parallel(model, 4)
+        model.compile(optimizer=Adam(lr=self.params['cnn_adam_learning_rate']), loss='categorical_crossentropy', metrics=['accuracy'])
+
+        print("Training...")
+
+        filePath = os.path.join(self.params['directories']['cnn_checkpoint_weights'], 'weights.{epoch:02d}.hdf5')
+        checkpoint = ModelCheckpoint(filepath=filePath, monitor='loss', verbose=1, save_best_only=False,
+                                     save_weights_only=False, mode='auto', period=5)
+        callbacks_list = [checkpoint]
+
+        #callbacks_list = []
+        model.fit_generator(train_datagen,
+                            steps_per_epoch=(len(trainData) / self.params['batch_size_cnn'] + 1),
+                            epochs=self.params['cnn_epochs'], callbacks=callbacks_list)
+
+        model.save(self.params['files']['cnn_model'])
+        print("DONE")
+
+    def train_effnet_cnn(self):
+        """
+        Train CNN with or without metadata depending on setting of 'use_metadata' in params.py.
+        :param:
+        :return:
+        """
+        '''
+        trainData = json.load(open(self.params.files['training_struct']))
+        metadataStats = json.load(open(self.params.files['dataset_stats']))
+        '''
+
+        trainData = prepare_train_data_rows(self.params)
+        # {img_path, country_OH, continent_OH, label} for each train data row
+
+        #train_datagen = img_metadata_generator(self.params, trainData, metadataStats)
+        train_datagen = img_metadata_generator(self.params.copy(), trainData)
+
+        model = get_effnet_model(self.params.copy())
         #model = make_parallel(model, 4)
         model.compile(optimizer=Adam(lr=self.params['cnn_adam_learning_rate']), loss='categorical_crossentropy', metrics=['accuracy'])
 
