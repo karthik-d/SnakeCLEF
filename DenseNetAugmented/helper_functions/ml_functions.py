@@ -13,6 +13,7 @@ from helper_functions.data_functions import get_batch_inds
 
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
+import cv2
 
 def get_cnn_model(params):
     """
@@ -22,22 +23,22 @@ def get_cnn_model(params):
     """
 
     input_tensor = Input(shape=(params['target_img_size'][0],params['target_img_size'][1],params['num_channels']))
-    baseModel = densenet.DenseNetImageNet161(input_shape=(params.target_img_size[0], params['target_img_size'][1], params['num_channels']), include_top=False, input_tensor=input_tensor)
+    baseModel = densenet.DenseNetImageNet161(input_shape=(params['target_img_size'][0], params['target_img_size'][1], params['num_channels']), include_top=False, input_tensor=input_tensor)
 
     modelStruct = baseModel.layers[-1].output
 
-    if params.use_metadata:
-        auxiliary_input_country = Input(shape=(params.country_count,), name='aux_input_coun')
-        auxiliary_input_continent = Input(shape=(params.continent_count,), name='aux_input_cont')
+    if params['use_metadata']:
+        auxiliary_input_country = Input(shape=(params['country_count'],), name='aux_input_coun')
+        auxiliary_input_continent = Input(shape=(params['continent_count'],), name='aux_input_cont')
         modelStruct = merge([modelStruct,auxiliary_input_country,auxiliary_input_continent],'concat')
 
-    modelStruct = Dense(params.cnn_lstm_layer_length, activation='relu', name='fc1')(modelStruct)
+    modelStruct = Dense(params['cnn_lstm_layer_length'], activation='relu', name='fc1')(modelStruct)
     modelStruct = Dropout(0.5)(modelStruct)
-    modelStruct = Dense(params.cnn_lstm_layer_length, activation='relu', name='fc2')(modelStruct)
+    modelStruct = Dense(params['cnn_lstm_layer_length'], activation='relu', name='fc2')(modelStruct)
     modelStruct = Dropout(0.5)(modelStruct)
-    predictions = Dense(params.num_labels, activation='softmax')(modelStruct)
+    predictions = Dense(params['num_labels'], activation='softmax')(modelStruct)
 
-    if not params.use_metadata:
+    if not params['use_metadata']:
         model = Model(input=[baseModel.input], output=predictions)
     else:
         model = Model(input=[baseModel.input, auxiliary_input_country, auxiliary_input_continent], output=predictions)
@@ -55,71 +56,61 @@ def get_lstm_model(params, codesStats):
     :return model: LSTM model
     """
 
-    if params.use_metadata:
-        layerLength = params.cnn_lstm_layer_length + params.metadata_length
+    if params['use_metadata']:
+        layerLength = params['cnn_lstm_layer_length'] + params['metadata_length']
     else:
-        layerLength = params.cnn_lstm_layer_length
+        layerLength = params['cnn_lstm_layer_length']
 
     model = Sequential()
     model.add(LSTM(4096, return_sequences=True, input_shape=(codesStats['max_temporal'], layerLength), dropout=0.5))
     model.add(Flatten())
     model.add(Dense(512, activation='relu'))
     model.add(Dropout(0.5))
-    model.add(Dense(params.num_labels, activation='softmax'))
+    model.add(Dense(params['num_labels'], activation='softmax'))
     return model
 
+
 '''
-def img_metadata_generator(params, data, metadataStats):
+def _load_batch_helper(inputDict):
     """
-    Custom generator that yields images or (image,metadata) batches and their
-    category labels (categorical format).
-    :param params: global parameters, used to find location of the dataset and json file
-    :param data: list of objects containing the category labels and paths to images and metadata features
-    :param metadataStats: metadata stats used to normalize metadata features
-    :yield (imgdata,labels) or (imgdata,metadata,labels): image data, metadata (if params set to use), and labels (categorical form)
+    Helper for load_cnn_batch that actually loads imagery and supports parallel processing
+    :param inputDict: dict containing the data and metadataStats that will be used to load imagery
+    :return currOutput: dict with image data, metadata, and the associated label
     """
 
-    N = len(data)
-
-    idx = np.random.permutation(N)
-
-    batchInds = get_batch_inds(params.batch_size_cnn, idx, N)
-
-    executor = ProcessPoolExecutor(max_workers=params.num_workers)
-
-    while True:
-        for inds in batchInds:
-            batchData = [data[ind] for ind in inds]
-            imgdata, metadata, labels = load_cnn_batch(params, batchData, metadataStats, executor)
-            if params.use_metadata:
-                yield ([imgdata, metadata], labels)
-            else:
-                yield (imgdata, labels)
+    data = inputDict['data']
+    metadataStats = inputDict['metadataStats']
+    metadata = np.divide(json.load(open(data['features_path'])) - np.array(metadataStats['metadata_mean']), metadataStats['metadata_max'])
+    img = image.load_img(data['img_path'])
+    img = image.img_to_array(img)
+    labels = data['category']
+    currOutput = {}
+    currOutput['img'] = img
+    currOutput['metadata'] = metadata
+    currOutput['labels'] = labels
+    # A dictionary of img as 3D numpy array, metadata after mean-normalization, label name
+    return currOutput
 '''
 
-def img_metadata_generator(params, data_params):
+def _load_batch_helper(data_dict, target_img_size):
     """
-    Custom generator that yields images or (image,metadata) batches and their
-    category labels (categorical format).
-    :param params: global parameters, used to find location of the dataset
-    :yield (imgdata,labels) or (imgdata,metadata,labels): image data, metadata (if params set to use), and labels (categorical form)
+    Helper for load_cnn_batch that actually loads imagery and supports parallel processing
+    :param inputDict: dict containing the data and metadataStats that will be used to load imagery
+    :return currOutput: dict with image data, metadata, and the associated label
     """
+    loaded_data = dict()
 
+    #img = cv2.imread(data_dict['img_path']).astype(np.float32)
+    img = cv2.imread(data_dict['img_path'])
+    img = cv2.resize(img, target_img_size).astype(np.uint8)
+    loaded_data['img'] = img
 
-    N = len(data_params)
+    loaded_data['meta_country'] = data_dict['meta_country']
+    loaded_data['meta_continent'] = data_dict['meta_continent']
+    loaded_data['label'] = data_dict['label']
 
-    idx = np.random.permutation(N)
-
-    batchInds = get_batch_inds(params['batch_size_cnn'], idx, N)
-
-    while True:
-        for inds in batchInds:
-            batchData = [data_params[ind] for ind in inds]
-            imgdata, metadata_country, metadata_continent, labels = load_cnn_batch(params, batchData)
-            if params['use_metadata']:
-                yield ([imgdata, metadata_country, metadata_continent], labels)
-            else:
-                yield (imgdata, labels)
+    # A dictionary of img as 3D numpy array, metadata, label id
+    return loaded_data
 
 '''
 def load_cnn_batch(params, batchData, metadataStats, executor):
@@ -179,11 +170,12 @@ def load_cnn_batch(params, batchData):
     executor = ProcessPoolExecutor(max_workers=params['num_workers'])
 
     for i in range(len(batchData)):
-        task = partial(_load_batch_helper, batchData[i], params)   # batchData[i] is a dictionary
+        task = partial(_load_batch_helper, batchData[i], params['target_img_size'])   # batchData[i] is a dictionary
         futures.append(executor.submit(task))
 
     # list of dictionaries (described in next function), one per x_data in the batch
     results = [future.result() for future in futures]
+    executor.shutdown()
 
     for i, result in enumerate(results):
         metadata_country[i, :] = result['meta_country']
@@ -201,45 +193,57 @@ def load_cnn_batch(params, batchData):
     return imgdata, metadata_country, metadata_continent, labels
 
 '''
-def _load_batch_helper(inputDict):
+def img_metadata_generator(params, data, metadataStats):
     """
-    Helper for load_cnn_batch that actually loads imagery and supports parallel processing
-    :param inputDict: dict containing the data and metadataStats that will be used to load imagery
-    :return currOutput: dict with image data, metadata, and the associated label
+    Custom generator that yields images or (image,metadata) batches and their
+    category labels (categorical format).
+    :param params: global parameters, used to find location of the dataset and json file
+    :param data: list of objects containing the category labels and paths to images and metadata features
+    :param metadataStats: metadata stats used to normalize metadata features
+    :yield (imgdata,labels) or (imgdata,metadata,labels): image data, metadata (if params set to use), and labels (categorical form)
     """
 
-    data = inputDict['data']
-    metadataStats = inputDict['metadataStats']
-    metadata = np.divide(json.load(open(data['features_path'])) - np.array(metadataStats['metadata_mean']), metadataStats['metadata_max'])
-    img = image.load_img(data['img_path'])
-    img = image.img_to_array(img)
-    labels = data['category']
-    currOutput = {}
-    currOutput['img'] = img
-    currOutput['metadata'] = metadata
-    currOutput['labels'] = labels
-    # A dictionary of img as 3D numpy array, metadata after mean-normalization, label name
-    return currOutput
+    N = len(data)
+
+    idx = np.random.permutation(N)
+
+    batchInds = get_batch_inds(params.batch_size_cnn, idx, N)
+
+    executor = ProcessPoolExecutor(max_workers=params.num_workers)
+
+    while True:
+        for inds in batchInds:
+            batchData = [data[ind] for ind in inds]
+            imgdata, metadata, labels = load_cnn_batch(params, batchData, metadataStats, executor)
+            if params.use_metadata:
+                yield ([imgdata, metadata], labels)
+            else:
+                yield (imgdata, labels)
 '''
 
-def _load_batch_helper(data_dict, params):
+def img_metadata_generator(params, data_params):
     """
-    Helper for load_cnn_batch that actually loads imagery and supports parallel processing
-    :param inputDict: dict containing the data and metadataStats that will be used to load imagery
-    :return currOutput: dict with image data, metadata, and the associated label
+    Custom generator that yields images or (image,metadata) batches and their
+    category labels (categorical format).
+    :param params: global parameters, used to find location of the dataset
+    :yield (imgdata,labels) or (imgdata,metadata,labels): image data, metadata (if params set to use), and labels (categorical form)
     """
-    loaded_data = dict()
 
-    img = cv2.imread(data_dict['img_path']).astype(np.float32)
-    img = cv2.resize(img, params['target_img_size']).astype(np.uint8)
-    loaded_data['img'] = img
 
-    loaded_data['meta_country'] = data_dict['meta_country']
-    loaded_data['meta_continent'] = data_dcit['meta_continent']
-    loaded_data['label'] = data_dict['label']
+    N = len(data_params)
 
-    # A dictionary of img as 3D numpy array, metadata, label id
-    return loaded_data
+    idx = np.random.permutation(N)
+
+    batchInds = get_batch_inds(params['batch_size_cnn'], idx, N)
+
+    while True:
+        for inds in batchInds:
+            batchData = [data_params[ind] for ind in inds]
+            imgdata, metadata_country, metadata_continent, labels = load_cnn_batch(params, batchData)
+            if params['use_metadata']:
+                yield ([imgdata, metadata_country, metadata_continent], labels)
+            else:
+                yield (imgdata, labels)
 
 def codes_metadata_generator(params, data, metadataStats, codesStats):
     """

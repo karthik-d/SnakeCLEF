@@ -5,7 +5,7 @@ import params
 
 def main(argv):
     baseline = DenseModel(params, argv)
-    if baseline.params.train_cnn:
+    if baseline.params['train_cnn']:
         baseline.train_cnn()
     """
     if baseline.params.generate_cnn_codes:

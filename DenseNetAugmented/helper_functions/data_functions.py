@@ -223,6 +223,7 @@ def _process_file(file, slashes, root, isTrain, outDir, params):
 
 def prepare_train_data_rows(params):
     dataparams = pd.read_csv(params['files']['train_dataparams'])
+    print(dataparams.info())
 
     # DONT RESIZE HERE, TO REDUCE PROCESSING OVERHEAD
     train_data = list()

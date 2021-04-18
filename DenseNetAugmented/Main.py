@@ -38,7 +38,7 @@ class DenseModel:
                 self.params['train_lstm'] = True
             if performAll or arg == '-test':
                 self.params['test_cnn'] = True
-                self.params'[test_lstm'] = True
+                self.params['test_lstm'] = True
             if performAll or arg == '-test_cnn':
                 self.params['test_cnn'] = True
             if performAll or arg == '-test_lstm':
@@ -77,26 +77,28 @@ class DenseModel:
         # {img_path, country_OH, continent_OH, label} for each train data row
 
         #train_datagen = img_metadata_generator(self.params, trainData, metadataStats)
-        train_datagen = img_metadata_generator(self.params, trainData)
+        train_datagen = img_metadata_generator(self.params.copy(), trainData)
 
-        model = get_cnn_model(self.params)
+        model = get_cnn_model(self.params.copy())
         #model = make_parallel(model, 4)
-        model.compile(optimizer=Adam(lr=self.params.cnn_adam_learning_rate), loss='categorical_crossentropy', metrics=['accuracy'])
+        model.compile(optimizer=Adam(lr=self.params['cnn_adam_learning_rate']), loss='categorical_crossentropy', metrics=['accuracy'])
 
         print("Training...")
 
-        filePath = os.path.join(self.params.directories['cnn_checkpoint_weights'], 'weights.{epoch:02d}.hdf5')
+        filePath = os.path.join(self.params['directories']['cnn_checkpoint_weights'], 'weights.{epoch:02d}.hdf5')
         checkpoint = ModelCheckpoint(filepath=filePath, monitor='loss', verbose=1, save_best_only=False,
                                      save_weights_only=False, mode='auto', period=5)
         callbacks_list = [checkpoint]
 
         #callbacks_list = []
         model.fit_generator(train_datagen,
-                            steps_per_epoch=(len(trainData) / self.params.batch_size_cnn + 1),
-                            epochs=self.params.cnn_epochs, callbacks=callbacks_list)
+                            steps_per_epoch=(len(trainData) / self.params['batch_size_cnn'] + 1),
+                            epochs=self.params['cnn_epochs'], callbacks=callbacks_list)
 
-        model.save(self.params.files['cnn_model'])
+        model.save(self.params['files']['cnn_model'])
+        print("DONE")
 
+    '''
     def train_lstm(self):
         """
         Train LSTM pipeline using pre-generated CNN codes.
@@ -368,3 +370,4 @@ class DenseModel:
             fidCNN.close()
         if self.params.test_lstm:
             fidLSTM.close()
+    '''
