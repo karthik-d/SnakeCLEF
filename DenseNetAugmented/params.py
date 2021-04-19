@@ -39,6 +39,7 @@ directories['dynamic'] = os.path.join(directories['attemptpath'], 'dynamic')
 directories['output'] = os.path.join(directories['attemptpath'], 'output')
 directories['dataset'] = os.path.join(directories['basepath'], "Datasets", "SnakeCLEF-2021")
 directories['cnn_checkpoint_weights'] = os.path.join(directories['dynamic'], 'cnn_checkpoint_weights')
+directories['cnn_effnet_checkpoint_weights'] = os.path.join(directories['dynamic'], 'cnn_effnet_checkpoint_weights')
 
 """
 directories['input'] = os.path.join('..', 'data', 'input')
@@ -58,6 +59,7 @@ directories['lstm_checkpoint_weights'] = os.path.join(directories['working'], 'l
 files = dict()
 files['train_dataparams'] = os.path.join(directories['attemptpath'], "microtrain_metadata.csv")
 files['cnn_model'] = os.path.join(directories['output'], 'cnn_model.h5')
+files['cnn_effnet_model'] = os.path.join(directories['output'], 'cnn_effnet_model.h5')
 
 """
 files['training_struct'] = os.path.join(directories['working'], 'training_struct.json')

@@ -230,6 +230,7 @@ def DenseNet(input_shape=None, depth=40, nb_dense_block=3, growth_rate=12, nb_fi
 
             print("Weights for the model were loaded successfully")
 
+    model.summary()
     return model
 
 

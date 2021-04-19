@@ -1,7 +1,7 @@
 import json
 from keras import backend as K
 from keras.applications import imagenet_utils
-from keras.layers import Dense,Input,merge,Flatten,Dropout,LSTM
+from keras.layers import Dense,Input,merge,Flatten,Dropout,LSTM,concatenate
 from keras.models import Sequential,Model
 from keras.preprocessing import image
 from keras.utils.np_utils import to_categorical
@@ -31,6 +31,7 @@ def get_cnn_model(params):
     if params['use_metadata']:
         auxiliary_input_country = Input(shape=(params['country_count'],), name='aux_input_coun')
         auxiliary_input_continent = Input(shape=(params['continent_count'],), name='aux_input_cont')
+        #print(modelStruct.shape)   # (, 2208)
         modelStruct = merge([modelStruct,auxiliary_input_country,auxiliary_input_continent],'concat')
 
     modelStruct = Dense(params['cnn_lstm_layer_length'], activation='relu', name='fc1')(modelStruct)
@@ -57,14 +58,14 @@ def get_effnet_model(params):
     """
 
     input_tensor = Input(shape=(params['target_img_size'][0],params['target_img_size'][1],params['num_channels']))
-    baseModel = efficientnet.EfficientNetB7(input_shape=(params['target_img_size'][0], params['target_img_size'][1], params['num_channels']), include_top=False, input_tensor=input_tensor)
+    baseModel = efficientnet.EfficientNetB7(input_shape=(params['target_img_size'][0], params['target_img_size'][1], params['num_channels']), include_top=False, input_tensor=input_tensor, pooling='avg')
 
     modelStruct = baseModel.layers[-1].output
 
     if params['use_metadata']:
         auxiliary_input_country = Input(shape=(params['country_count'],), name='aux_input_coun')
         auxiliary_input_continent = Input(shape=(params['continent_count'],), name='aux_input_cont')
-        modelStruct = merge([modelStruct,auxiliary_input_country,auxiliary_input_continent],'concat')
+        modelStruct = concatenate([modelStruct,auxiliary_input_country,auxiliary_input_continent])
 
     modelStruct = Dense(params['cnn_lstm_layer_length'], activation='relu', name='fc1')(modelStruct)
     modelStruct = Dropout(0.5)(modelStruct)

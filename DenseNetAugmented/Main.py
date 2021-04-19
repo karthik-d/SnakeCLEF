@@ -63,6 +63,7 @@ class DenseModel:
         """
 
     def train_cnn(self):
+        # USE KERAS 2.0.8
         """
         Train CNN with or without metadata depending on setting of 'use_metadata' in params.py.
         :param:
@@ -80,6 +81,7 @@ class DenseModel:
         train_datagen = img_metadata_generator(self.params.copy(), trainData)
 
         model = get_cnn_model(self.params.copy())
+        model.summary()
         #model = make_parallel(model, 4)
         model.compile(optimizer=Adam(lr=self.params['cnn_adam_learning_rate']), loss='categorical_crossentropy', metrics=['accuracy'])
 
@@ -99,6 +101,7 @@ class DenseModel:
         print("DONE")
 
     def train_effnet_cnn(self):
+        # USE KERAS 2.2.0
         """
         Train CNN with or without metadata depending on setting of 'use_metadata' in params.py.
         :param:
@@ -117,11 +120,12 @@ class DenseModel:
 
         model = get_effnet_model(self.params.copy())
         #model = make_parallel(model, 4)
+        model.summary()
         model.compile(optimizer=Adam(lr=self.params['cnn_adam_learning_rate']), loss='categorical_crossentropy', metrics=['accuracy'])
 
         print("Training...")
 
-        filePath = os.path.join(self.params['directories']['cnn_checkpoint_weights'], 'weights.{epoch:02d}.hdf5')
+        filePath = os.path.join(self.params['directories']['cnn_effnet_checkpoint_weights'], 'weights.{epoch:02d}.hdf5')
         checkpoint = ModelCheckpoint(filepath=filePath, monitor='loss', verbose=1, save_best_only=False,
                                      save_weights_only=False, mode='auto', period=5)
         callbacks_list = [checkpoint]
@@ -131,7 +135,7 @@ class DenseModel:
                             steps_per_epoch=(len(trainData) / self.params['batch_size_cnn'] + 1),
                             epochs=self.params['cnn_epochs'], callbacks=callbacks_list)
 
-        model.save(self.params['files']['cnn_model'])
+        model.save(self.params['files']['cnn_effnet_model'])
         print("DONE")
 
     '''

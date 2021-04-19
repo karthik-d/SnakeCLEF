@@ -10,11 +10,12 @@ import collections
 from six.moves import xrange
 from keras.applications.imagenet_utils import _obtain_input_shape
 from keras.applications.imagenet_utils import preprocess_input as _preprocess_input
+from keras.engine.topology import get_source_inputs
 
 from . import get_submodules_from_kwargs
 from .weights import IMAGENET_WEIGHTS_PATH, IMAGENET_WEIGHTS_HASHES, NS_WEIGHTS_HASHES, NS_WEIGHTS_PATH
 
-backend = 'tensorflow'
+backend = None
 layers = None
 models = None
 keras_utils = None
@@ -304,7 +305,7 @@ def EfficientNet(width_coefficient,
         img_input = layers.Input(shape=input_shape)
     else:
         if backend.backend() == 'tensorflow':
-            from tensorflow.python.keras.backend import is_keras_tensor
+            from keras.backend import is_keras_tensor
         else:
             is_keras_tensor = backend.is_keras_tensor
         if not is_keras_tensor(input_tensor):
@@ -370,7 +371,8 @@ def EfficientNet(width_coefficient,
                       kernel_initializer=CONV_KERNEL_INITIALIZER,
                       name='top_conv')(x)
     x = layers.BatchNormalization(axis=bn_axis, name='top_bn')(x)
-    x = layers.Activation(activation, name='top_activation')(x)
+    #x = layers.Activation(activation, name='top_activation')(x)
+    x = layers.Activation('relu', name='top_activation')(x)
     if include_top:
         x = layers.GlobalAveragePooling2D(name='avg_pool')(x)
         if dropout_rate and dropout_rate > 0:
@@ -388,12 +390,13 @@ def EfficientNet(width_coefficient,
     # Ensure that the model takes into account
     # any potential predecessors of `input_tensor`.
     if input_tensor is not None:
-        inputs = keras_utils.get_source_inputs(input_tensor)
+        inputs = get_source_inputs(input_tensor)
     else:
         inputs = img_input
 
     # Create model.
     model = models.Model(inputs, x, name=model_name)
+    model.summary()
 
     # Load weights.
     if weights == 'imagenet':

@@ -1,10 +1,10 @@
 import functools
+import keras
 
-_KERAS_BACKEND = None
-_KERAS_LAYERS = None
-_KERAS_MODELS = None
-_KERAS_UTILS = None
-
+_KERAS_BACKEND = keras.backend
+_KERAS_LAYERS = keras.layers
+_KERAS_MODELS = keras.models
+_KERAS_UTILS = keras.utils
 
 def get_submodules_from_kwargs(kwargs):
     backend = kwargs.get('backend', _KERAS_BACKEND)
