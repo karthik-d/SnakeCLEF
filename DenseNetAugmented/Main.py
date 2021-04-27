@@ -93,12 +93,22 @@ class DenseModel:
         callbacks_list = [checkpoint]
 
         #callbacks_list = []
+        print("Train Size: ", len(trainData))
+        print("Batch Size: ", self.params['batch_size_cnn'])
+        print("Steps per Epoch: ", len(trainData) // self.params['batch_size_cnn'])
+        print("Epochs: ", self.params['cnn_epochs'])
         model.fit_generator(train_datagen,
-                            steps_per_epoch=(len(trainData) / self.params['batch_size_cnn'] + 1),
+                            steps_per_epoch=(len(trainData) // self.params['batch_size_cnn'] ),
                             epochs=self.params['cnn_epochs'], callbacks=callbacks_list)
 
         model.save(self.params['files']['cnn_model'])
         print("DONE")
+
+    def test_generator(self):
+        trainData = prepare_train_data_rows(self.params)
+        train_datagen = img_metadata_generator(self.params.copy(), trainData)
+        for i in train_datagen:
+            print(i)
 
     def train_effnet_cnn(self):
         # USE KERAS 2.2.0

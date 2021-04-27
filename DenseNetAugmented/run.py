@@ -6,8 +6,9 @@ import params
 def main(argv):
     baseline = DenseModel(params, argv)
     if baseline.params['train_cnn']:
-        # baseline.train_cnn()
-        baseline.train_effnet_cnn()
+        baseline.train_cnn()
+        #baseline.train_effnet_cnn()
+        # baseline.test_generator()
     """
     if baseline.params.generate_cnn_codes:
         baseline.generate_cnn_codes()

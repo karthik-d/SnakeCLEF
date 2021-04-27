@@ -1,11 +1,12 @@
 import os
 from multiprocessing import cpu_count
 
-num_workers = cpu_count()
+# num_workers = cpu_count()
+num_workers = 1
 
 use_metadata = True
 
-batch_size_cnn = 128
+batch_size_cnn = 2
 batch_size_lstm = 512
 batch_size_eval = 128
 metadata_length = 2  # No of features
