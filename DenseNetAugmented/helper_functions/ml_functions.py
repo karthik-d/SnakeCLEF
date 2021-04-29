@@ -127,7 +127,7 @@ def _load_batch_helper(inputDict):
     return currOutput
 '''
 
-def _load_batch_helper(data_dict, target_img_size):
+def _load_batch_helper(data_dict):
     """
     Helper for load_cnn_batch that actually loads imagery and supports parallel processing
     :param inputDict: dict containing the data and metadataStats that will be used to load imagery
@@ -137,7 +137,7 @@ def _load_batch_helper(data_dict, target_img_size):
 
     #img = cv2.imread(data_dict['img_path']).astype(np.float32)
     img = cv2.imread(data_dict['img_path'])
-    img = cv2.resize(img, target_img_size).astype(np.uint8)
+    #img = cv2.resize(img, target_img_size).astype(np.uint8)
     loaded_data['img'] = img
 
     loaded_data['meta_country'] = data_dict['meta_country']
@@ -205,7 +205,7 @@ def load_cnn_batch(params, batchData):
     executor = ProcessPoolExecutor(max_workers=params['num_workers'])
 
     for i in range(len(batchData)):
-        task = partial(_load_batch_helper, batchData[i], params['target_img_size'])   # batchData[i] is a dictionary
+        task = partial(_load_batch_helper, batchData[i])   # batchData[i] is a dictionary
         futures.append(executor.submit(task))
 
     # list of dictionaries (described in next function), one per x_data in the batch

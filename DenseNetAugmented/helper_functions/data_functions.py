@@ -13,6 +13,7 @@ from keras.preprocessing import image
 #import warnings
 import cv2
 import pandas as pd
+import numpy as np
 
 '''
 def prepare_data(params):
@@ -225,13 +226,17 @@ def prepare_train_data_rows(params):
     dataparams = pd.read_csv(params['files']['train_dataparams'])
     print(dataparams.info())
 
-    # DONT RESIZE HERE, TO REDUCE PROCESSING OVERHEAD
     train_data = list()
     for idx,row in dataparams.iterrows():
         data_elem = dict()
 
         img_path = os.path.join(params['directories']['basepath'], row['image_path'][1:])
         data_elem['img_path'] = img_path
+
+        # RESIZE HERE, TO REDUCE PROCESSING OVERHEAD
+        img = cv2.imread(img_path)
+        img = cv2.resize(img, params['target_img_size']).astype(np.uint8)
+        cv2.imwrite(img_path, img)
 
         country_one_hot = params['map_country_one_hot'][row['country']]
         data_elem['meta_country'] = country_one_hot

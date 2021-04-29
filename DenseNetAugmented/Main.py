@@ -1,4 +1,10 @@
 import json
+
+import tensorflow as tf
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+session = tf.Session(config=config)
+
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint
 from keras.preprocessing import image
@@ -97,8 +103,8 @@ class DenseModel:
         print("Batch Size: ", self.params['batch_size_cnn'])
         print("Steps per Epoch: ", len(trainData) // self.params['batch_size_cnn'])
         print("Epochs: ", self.params['cnn_epochs'])
-        model.fit_generator(train_datagen,
-                            steps_per_epoch=(len(trainData) // self.params['batch_size_cnn'] ),
+        model.fit_generator(train_datagen, shuffle=False,
+                            steps_per_epoch=(len(trainData) // self.params['batch_size_cnn']),
                             epochs=self.params['cnn_epochs'], callbacks=callbacks_list)
 
         model.save(self.params['files']['cnn_model'])
@@ -107,8 +113,10 @@ class DenseModel:
     def test_generator(self):
         trainData = prepare_train_data_rows(self.params)
         train_datagen = img_metadata_generator(self.params.copy(), trainData)
+        ctr = 0
         for i in train_datagen:
-            print(i)
+            print(ctr)
+            ctr += 1
 
     def train_effnet_cnn(self):
         # USE KERAS 2.2.0
@@ -137,12 +145,19 @@ class DenseModel:
 
         filePath = os.path.join(self.params['directories']['cnn_effnet_checkpoint_weights'], 'weights.{epoch:02d}.hdf5')
         checkpoint = ModelCheckpoint(filepath=filePath, monitor='loss', verbose=1, save_best_only=False,
-                                     save_weights_only=False, mode='auto', period=5)
+                                     save_weights_only=False, mode='auto', period=3)
         callbacks_list = [checkpoint]
 
         #callbacks_list = []
-        model.fit_generator(train_datagen,
-                            steps_per_epoch=(len(trainData) / self.params['batch_size_cnn'] + 1),
+        print("Train Size: ", len(trainData))
+        print("Batch Size: ", self.params['batch_size_cnn'])
+        print("Steps per Epoch: ", len(trainData) // self.params['batch_size_cnn'])
+        print("Epochs: ", self.params['cnn_epochs'])
+        '''model.fit_generator(train_datagen,
+                            steps_per_epoch=(len(trainData) // self.params['batch_size_cnn']),
+                            epochs=self.params['cnn_epochs'], callbacks=callbacks_list)'''
+        model.fit_generator(train_datagen
+                            steps_per_epoch=(len(trainData) // self.params['batch_size_cnn']),
                             epochs=self.params['cnn_epochs'], callbacks=callbacks_list)
 
         model.save(self.params['files']['cnn_effnet_model'])

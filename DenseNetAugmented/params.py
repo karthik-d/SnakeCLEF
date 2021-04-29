@@ -1,8 +1,8 @@
 import os
 from multiprocessing import cpu_count
 
-# num_workers = cpu_count()
-num_workers = 1
+num_workers = cpu_count()
+# num_workers = 1
 
 use_metadata = True
 
