@@ -87,6 +87,7 @@ class DenseModel:
         train_datagen = img_metadata_generator(self.params.copy(), trainData)
 
         model = get_cnn_model(self.params.copy())
+        model.summary()
 
         # Load recent weights (if any)
         weight_file = None
@@ -102,7 +103,6 @@ class DenseModel:
             print("Loading weights from", weight_file)
             model.load_weights(os.path.join(self.params['directories']['cnn_checkpoint_weights'], weight_file))
 
-        model.summary()
         #model = make_parallel(model, 4)
         model.compile(optimizer=Adam(lr=self.params['cnn_adam_learning_rate']), loss='categorical_crossentropy', metrics=['accuracy'])
 
@@ -153,6 +153,7 @@ class DenseModel:
 
         model = get_effnet_model(self.params.copy())
         #model = make_parallel(model, 4)
+        model.summary()
 
         # Load recent weights (if any)
         weight_file = None
@@ -168,7 +169,6 @@ class DenseModel:
             print("Loading weights from", weight_file)
             model.load_weights(os.path.join(self.params['directories']['cnn_checkpoint_weights'], weight_file))
 
-        model.summary()
         model.compile(optimizer=Adam(lr=self.params['cnn_adam_learning_rate']), loss='categorical_crossentropy', metrics=['accuracy'])
 
         print("Training...")
