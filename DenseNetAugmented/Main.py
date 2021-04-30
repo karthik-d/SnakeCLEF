@@ -158,7 +158,7 @@ class DenseModel:
         # Load recent weights (if any)
         weight_file = None
         max_epoch = -1
-        for file in os.listdir(self.params['directories']['cnn_checkpoint_weights']):
+        for file in os.listdir(self.params['directories']['cnn_effnet_checkpoint_weights']):
             parts = file.split('.')
             if('hdf5' in parts):
                 epoch = int(parts[1])
