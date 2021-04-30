@@ -167,7 +167,7 @@ class DenseModel:
                     max_epoch = epoch
         if weight_file is not None:
             print("Loading weights from", weight_file)
-            model.load_weights(os.path.join(self.params['directories']['cnn_checkpoint_weights'], weight_file))
+            model.load_weights(os.path.join(self.params['directories']['cnn_effnet_checkpoint_weights'], weight_file))
 
         model.compile(optimizer=Adam(lr=self.params['cnn_adam_learning_rate']), loss='categorical_crossentropy', metrics=['accuracy'])
 
