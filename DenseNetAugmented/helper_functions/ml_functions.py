@@ -275,7 +275,6 @@ def img_metadata_generator(params, data_params):
         for inds in batchInds:
             batchData = [data_params[ind] for ind in inds]
             imgdata, metadata_country, metadata_continent, labels = load_cnn_batch(params, batchData)
-            print("Yielding..")
             if params['use_metadata']:
                 yield ([imgdata, metadata_country, metadata_continent], labels)
             else:

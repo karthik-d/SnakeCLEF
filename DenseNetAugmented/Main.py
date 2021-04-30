@@ -87,6 +87,21 @@ class DenseModel:
         train_datagen = img_metadata_generator(self.params.copy(), trainData)
 
         model = get_cnn_model(self.params.copy())
+
+        # Load recent weights (if any)
+        weight_file = None
+        max_epoch = -1
+        for file in os.listdir(self.params['directories']['cnn_checkpoint_weights']):
+            parts = file.split('.')
+            if('hdf5' in parts):
+                epoch = int(parts[1])
+                if(epoch>max_epoch):
+                    weight_file = file
+                    max_epoch = epoch
+        if weight_file is not None:
+            print("Loading weights from", weight_file)
+            model.load_weights(os.path.join(self.params['directories']['cnn_checkpoint_weights'], weight_file))
+
         model.summary()
         #model = make_parallel(model, 4)
         model.compile(optimizer=Adam(lr=self.params['cnn_adam_learning_rate']), loss='categorical_crossentropy', metrics=['accuracy'])
@@ -95,7 +110,7 @@ class DenseModel:
 
         filePath = os.path.join(self.params['directories']['cnn_checkpoint_weights'], 'weights.{epoch:02d}.hdf5')
         checkpoint = ModelCheckpoint(filepath=filePath, monitor='loss', verbose=1, save_best_only=False,
-                                     save_weights_only=False, mode='auto', period=5)
+                                     save_weights_only=True, mode='auto', period=5)
         callbacks_list = [checkpoint]
 
         #callbacks_list = []
@@ -138,6 +153,21 @@ class DenseModel:
 
         model = get_effnet_model(self.params.copy())
         #model = make_parallel(model, 4)
+
+        # Load recent weights (if any)
+        weight_file = None
+        max_epoch = -1
+        for file in os.listdir(self.params['directories']['cnn_checkpoint_weights']):
+            parts = file.split('.')
+            if('hdf5' in parts):
+                epoch = int(parts[1])
+                if(epoch>max_epoch):
+                    weight_file = file
+                    max_epoch = epoch
+        if weight_file is not None:
+            print("Loading weights from", weight_file)
+            model.load_weights(os.path.join(self.params['directories']['cnn_checkpoint_weights'], weight_file))
+
         model.summary()
         model.compile(optimizer=Adam(lr=self.params['cnn_adam_learning_rate']), loss='categorical_crossentropy', metrics=['accuracy'])
 
@@ -145,7 +175,7 @@ class DenseModel:
 
         filePath = os.path.join(self.params['directories']['cnn_effnet_checkpoint_weights'], 'weights.{epoch:02d}.hdf5')
         checkpoint = ModelCheckpoint(filepath=filePath, monitor='loss', verbose=1, save_best_only=False,
-                                     save_weights_only=False, mode='auto', period=3)
+                                     save_weights_only=True, mode='auto', period=2)
         callbacks_list = [checkpoint]
 
         #callbacks_list = []
@@ -156,7 +186,7 @@ class DenseModel:
         '''model.fit_generator(train_datagen,
                             steps_per_epoch=(len(trainData) // self.params['batch_size_cnn']),
                             epochs=self.params['cnn_epochs'], callbacks=callbacks_list)'''
-        model.fit_generator(train_datagen
+        model.fit_generator(train_datagen,
                             steps_per_epoch=(len(trainData) // self.params['batch_size_cnn']),
                             epochs=self.params['cnn_epochs'], callbacks=callbacks_list)
 
