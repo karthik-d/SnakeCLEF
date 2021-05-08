@@ -112,7 +112,7 @@ class DenseModel:
 
         filePath = os.path.join(self.params['directories']['cnn_checkpoint_weights'], 'weights.{epoch:02d}.hdf5')
         checkpoint = ModelCheckpoint(filepath=filePath, monitor='loss', verbose=1, save_best_only=False,
-                                     save_weights_only=True, mode='auto', period=5)
+                                     save_weights_only=True, mode='auto', period=1)
         callbacks_list = [checkpoint]
 
         #callbacks_list = []
