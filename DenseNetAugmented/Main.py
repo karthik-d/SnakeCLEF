@@ -216,7 +216,7 @@ class DenseModel:
         checkpoint = ModelCheckpoint(filepath=filePath, monitor='loss', verbose=0, save_best_only=False, save_weights_only=False, mode='auto', period=1)
         callbacks_list = [checkpoint]
 
-        model.fit_generator(train_datagen,
+        # model.fit_generator(train_datagen,
                             steps_per_epoch=(len(codesTrainData) / self.params.batch_size_lstm + 1),
                             epochs=self.params.lstm_epochs, callbacks=callbacks_list,
                             max_queue_size=20)
