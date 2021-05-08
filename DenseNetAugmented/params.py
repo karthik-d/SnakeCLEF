@@ -59,6 +59,7 @@ directories['lstm_checkpoint_weights'] = os.path.join(directories['working'], 'l
 
 files = dict()
 files['train_dataparams'] = os.path.join(directories['attemptpath'], "microtrain_metadata.csv")
+files['val_dataparams'] = os.path.join(directories['attemptpath'], "microval_metadata.csv")
 files['cnn_model'] = os.path.join(directories['output'], 'cnn_model.h5')
 files['cnn_effnet_model'] = os.path.join(directories['output'], 'cnn_effnet_model.h5')
 

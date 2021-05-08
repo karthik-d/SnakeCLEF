@@ -251,6 +251,35 @@ def prepare_train_data_rows(params):
 
     return train_data
 
+def prepare_val_data_rows(params):
+    dataparams = pd.read_csv(params['files']['val_dataparams'])
+    print(dataparams.info())
+
+    val_data = list()
+    for idx,row in dataparams.iterrows():
+        data_elem = dict()
+
+        img_path = os.path.join(params['directories']['basepath'], row['image_path'][1:])
+        data_elem['img_path'] = img_path
+
+        # RESIZE HERE, TO REDUCE PROCESSING OVERHEAD
+        img = cv2.imread(img_path)
+        img = cv2.resize(img, params['target_img_size']).astype(np.uint8)
+        cv2.imwrite(img_path, img)
+
+        country_one_hot = params['map_country_one_hot'][row['country']]
+        data_elem['meta_country'] = country_one_hot
+
+        continent_one_hot = params['map_continent_one_hot'][row['continent']]
+        data_elem['meta_continent'] = continent_one_hot
+
+        y_label = row['class_id']
+        data_elem['label'] = y_label
+
+        val_data.append(data_elem)
+
+    return val_data
+
 '''
 def json_to_feature_vector(params, jsonData, bb):
     features = np.zeros(params['metadata_length'], dtype=float)

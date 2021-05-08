@@ -11,7 +11,7 @@ from keras.preprocessing import image
 from keras.models import Model, load_model
 from keras.applications import imagenet_utils
 from helper_functions.ml_functions import get_cnn_model, get_effnet_model, img_metadata_generator, get_lstm_model, codes_metadata_generator
-from helper_functions.data_functions import prepare_train_data_rows
+from helper_functions.data_functions import prepare_train_data_rows, prepare_val_data_rows
 import numpy as np
 import os
 
@@ -81,10 +81,12 @@ class DenseModel:
         '''
 
         trainData = prepare_train_data_rows(self.params)
+        valData = prepare_val_data_rows(self.params)
         # {img_path, country_OH, continent_OH, label} for each train data row
 
         #train_datagen = img_metadata_generator(self.params, trainData, metadataStats)
         train_datagen = img_metadata_generator(self.params.copy(), trainData)
+        val_datagen = img_metadata_generator(self.params.copy(), valData)
 
         model = get_cnn_model(self.params.copy())
         model.summary()
@@ -115,12 +117,15 @@ class DenseModel:
 
         #callbacks_list = []
         print("Train Size: ", len(trainData))
+        print("Validation Size: ", len(valData))
         print("Batch Size: ", self.params['batch_size_cnn'])
         print("Steps per Epoch: ", len(trainData) // self.params['batch_size_cnn'])
         print("Epochs: ", self.params['cnn_epochs'])
         model.fit_generator(train_datagen, shuffle=False,
                             steps_per_epoch=(len(trainData) // self.params['batch_size_cnn']),
-                            epochs=self.params['cnn_epochs'], callbacks=callbacks_list)
+                            epochs=self.params['cnn_epochs'], callbacks=callbacks_list,
+                            validation_data=val_datagen,
+                            validation_steps=(len(valData) // self.params['batch_size_cnn']))
 
         model.save(self.params['files']['cnn_model'])
         print("DONE")
