@@ -28,7 +28,7 @@ import os
 df_train = pd.read_csv('trainonly_metadata.csv')
 df_test = pd.read_csv('valonly_metadata.csv')
 
-BASE_PATH = os.path.abspath(os.path.join(os.pardir, os.getcwd()))
+BASE_PATH = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
 # In[3]:
 
 
@@ -105,7 +105,7 @@ def load_image(img_path):
 
 
 img_size = 299
-batch_size = 4 #16 images per batch
+batch_size = 8 #16 images per batch
 #train_img_ids = df_train.image_name.values
 train_img_paths = df_train.image_path.values
 train_img_ids = df_train.UUID.values
@@ -151,19 +151,11 @@ def create_model(model_name, include_top, weights, input_shape, n_out):
                                         weights="imagenet",
                                         input_tensor=Input(shape=input_shape))
         x = Flatten() (base_model.output)
-        x = BatchNormalization() (x)
         x = Dense(256, activation='relu') (x)
         x = Dropout(0.5) (x)
-        x = BatchNormalization() (x)
-        x = Dense(128, activation='relu') (x)
-        x = Dropout(0.5) (x)
-        x = BatchNormalization() (x)
-        x = Dense(64, activation='relu') (x)
-        x = Dropout(0.5) (x)
-        x = BatchNormalization() (x)
         output_layer = Dense(n_out, activation='sigmoid', name='final_output') (x)
         model = Model(input=base_model.input, outputs=output_layer)
-        image_size = (224, 224)
+        image_size = input_shape[:2]
     elif model_name == "inceptionv3":
         print("Extract Features using "+model_name)
         base_model = InceptionV3(include_top=include_top, weights=weights, input_tensor=Input(shape=(299,299,3)))
@@ -204,7 +196,7 @@ def create_model(model_name, include_top, weights, input_shape, n_out):
 
 
 # m = create_model("inceptionresnetv2", False, 'imagenet',input_shape=(299,299,3), n_out=1)
-m = create_model("resnet50", False, 'imagenet',input_shape=(299,299,3), n_out=1)
+m = create_model("inceptionresnetv2", False, 'imagenet',input_shape=(299,299,3), n_out=1)
 
 
 # In[12]:
@@ -218,21 +210,18 @@ for b in range(n_batches):
 	batch_ids = train_img_ids[start:end]
 	batch_images = np.zeros((len(batch_paths),img_size,img_size,3))
 	for i,img_path in enumerate(batch_paths):
-		try:
-			batch_images[i] = load_image(img_path)
-		except:
-			pass
+		batch_images[i] = load_image(img_path)
 	batch_preds = m.predict(batch_images)
 	for i,img_id in enumerate(batch_ids):
 		features[img_id] = batch_preds[i]
-    if(b%1000==0):
-        print("Batch", (b+1), "done")
+	if(b%500==0):
+		print("Batch", (b+1), "done")
 
 
 # In[13]:
 
 
-train_feats = pd.DataFrame.from_dict(features, orient='index')
+train_feats = pd.DataFrame.from_dict(features, orient='index', columns=['feature'])
 #Save for future reference 
 train_feats.to_csv('train_img_features.csv')
 train_feats.head()
@@ -258,20 +247,17 @@ for b in range(n_batches):
 	batch_ids = test_img_ids[start:end]
 	batch_images = np.zeros((len(batch_paths),img_size,img_size,3))
 	for i,img_path in enumerate(batch_paths):
-		try:
-			batch_images[i] = load_image(img_path)
-		except:
-			pass
+		batch_images[i] = load_image(img_path)
 	batch_preds = m.predict(batch_images)
 	for i,img_id in enumerate(batch_ids):
 		features[img_id] = batch_preds[i]
-    if(b%1000==0):
-        print("Batch", (b+1), "done")
+	if(b%500==0):
+		print("Batch", (b+1), "done")
 
 # In[16]:
 
 
-test_feats = pd.DataFrame.from_dict(features, orient='index')
+test_feats = pd.DataFrame.from_dict(features, orient='index', columns=['features'])
 test_feats.to_csv('test_img_features.csv')
 test_feats.head()
 
@@ -291,6 +277,9 @@ df_test_full = pd.merge(df_test, test_feats, how='inner', left_on='UUID', right_
 train = df_train_full.drop(['Unnamed: 0', 'binomial', 'genus', 'family', 'UUID', 'source', 'subset', 'image_path'], axis=1)
 test = df_test_full.drop(['Unnamed: 0', 'binomial', 'genus', 'family', 'UUID', 'source', 'subset', 'image_path'],axis=1)
 
+print(train)
+print(test)
+
 #Label Encode categorical features
 train.country.fillna('unknown',inplace=True)
 test.country.fillna('unknown',inplace=True)
@@ -302,8 +291,6 @@ train.country = le_country.fit_transform(train.country)
 test.country = le_country.transform(test.country)
 train.continent = le_continent.fit_transform(train.continent)
 test.continent = le_continent.transform(test.continent)
-
-
 # In[18]:
 
 
