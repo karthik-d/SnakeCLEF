@@ -25,8 +25,8 @@ import os
 
 #df_train = pd.read_csv('trainonly_metadata.csv')
 #df_test = pd.read_csv('valonly_metadata.csv')
-df_train = pd.read_csv('microtrain_metadata.csv')
-df_test = pd.read_csv('microtrain_metadata.csv')
+df_train = pd.read_csv('trainonly_metadata.csv')
+df_test = pd.read_csv('valonly_metadata.csv')
 
 BASE_PATH = os.path.abspath(os.path.join(os.pardir, os.getcwd()))
 # In[3]:
@@ -57,7 +57,7 @@ from tensorflow.keras import Sequential
 from keras.layers import GlobalAveragePooling2D, Input, Lambda, AveragePooling1D , Dropout, BatchNormalization
 from tensorflow.keras.applications import Xception 
 import keras.backend as K
-#from lightgbm import LGBMClassifier
+from lightgbm import LGBMClassifier
 import tensorflow as tf
 tf.test.gpu_device_name()
 
@@ -66,6 +66,7 @@ tf.test.gpu_device_name()
 
 device_name = tf.test.gpu_device_name()
 if "GPU" not in device_name:
+    print(device_name)
     print("GPU device not found")
 print('Found GPU at: {}'.format(device_name))
 
@@ -224,6 +225,8 @@ for b in range(n_batches):
 	batch_preds = m.predict(batch_images)
 	for i,img_id in enumerate(batch_ids):
 		features[img_id] = batch_preds[i]
+    if(b%1000==0):
+        print("Batch", (b+1), "done")
 
 
 # In[13]:
@@ -262,6 +265,8 @@ for b in range(n_batches):
 	batch_preds = m.predict(batch_images)
 	for i,img_id in enumerate(batch_ids):
 		features[img_id] = batch_preds[i]
+    if(b%1000==0):
+        print("Batch", (b+1), "done")
 
 # In[16]:
 
