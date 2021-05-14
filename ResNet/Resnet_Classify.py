@@ -3,9 +3,12 @@ from lightgbm import LGBMClassifier
 #from xgboost import XGBClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.metrics import roc_curve, auc, accuracy_score
 import gc
 import numpy as np
+import os
+
+RESULT_PATH = os.path.join(os.getcwd(), 'Results')
 
 df_train = pd.read_csv('trainonly_metadata.csv')
 df_test = pd.read_csv('valonly_metadata.csv')
@@ -47,6 +50,8 @@ test.country = le_country.transform(test.country)
 train.continent = le_continent.fit_transform(train.continent)
 test.continent = le_continent.transform(test.continent)
 
+#print(len(train.class_id.unique()))
+
 
 # In[18]:
 
@@ -63,18 +68,32 @@ for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train[features], tra
     valid_X, valid_y = train[features].iloc[valid_idx], train['class_id'].iloc[valid_idx]
     clf = LGBMClassifier(
         device='gpu',
-        n_estimators=500,
+		objective='multiclass',
+		num_classes=772,
+		num_iterations=300,
+		learning_rate=0.001,
+		num_leaves=50,
+		random_state=23,
+		colsample_bytree=0.5,
+		max_depth=8
+    )
+    """,
+		n_estimators=1000,
         learning_rate=0.001,
         max_depth=8,
+        colsample_bytree=0.5,
         num_leaves=50,
         random_state=23
-    )
+    """
     print('*****Fold: {}*****'.format(n_fold))
     clf.fit(train_X, train_y, eval_set=[(train_X, train_y), (valid_X, valid_y)], 
-            eval_metric= 'multi_logloss', verbose=1, early_stopping_rounds=10)
+            eval_metric= 'multi_logloss', verbose=1)
 
-    oof_preds[valid_idx] = clf.predict_proba(valid_X, num_iteration=clf.best_iteration_)[:, 1]
-    sub_preds += clf.predict_proba(test[features], num_iteration=clf.best_iteration_)[:, 1] / folds.n_splits
+    oof_preds[valid_idx] = clf.predict(valid_X, num_iteration=clf.best_iteration_)
+    sub_preds = clf.predict(test[features], num_iteration=clf.best_iteration_)#[:, 1] / folds.n_splits
+    #sub_preds_prob = clf.predict_proba(test[features], num_iteration=clf.best_iteration_)
+    print(sub_preds)
+    #print(sub_preds_prob)
 
     print("Writing to dataframe...")
     fold_importance_df = pd.DataFrame()
@@ -82,9 +101,20 @@ for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train[features], tra
     fold_importance_df["importance"] = clf.feature_importances_
     fold_importance_df["fold"] = n_fold + 1
     feature_importance_df = pd.concat([feature_importance_df, fold_importance_df], axis=0)
-    print('Fold %2d AUC : %.6f' % (n_fold + 1, roc_auc_score(valid_y, oof_preds[valid_idx])))
+    feature_importance_df.to_csv(os.path.join(RESULT_PATH, 'feature_importance.csv'))
+    print('Fold %2d Accuracy : %.6f' % (n_fold + 1, accuracy_score(valid_y, oof_preds[valid_idx])))
     del clf, train_X, train_y, valid_X, valid_y
     gc.collect()
+    
+    submission = pd.DataFrame({
+		"UUID": df_test.UUID, 
+		"prediction": sub_preds
+    })
+    submission.to_csv(os.path.join(RESULT_PATH, 'submission_{fold_num}.csv'.format(fold_num=n_fold)), index=False)
+    """
+    class_probs = pd.DataFrame(zip(df_test.UUID, sub_preds_prob))
+    class_probs.to_csv(os.path.join(RESULT_PATH, 'probs_{fold_num}.csv'.format(fold_num=n_fold)), index=False)
+    """
 
 # In[19]:
 '''
@@ -108,12 +138,13 @@ for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train[features], tra
     del clf, train_X, train_y, valid_X, valid_y
     gc.collect()
 '''
+"""
 submission = pd.DataFrame({
     "UUID": df_test.UUID, 
     "prediction": sub_preds
 })
 submission.to_csv('submission.csv', index=False)
-
+"""
 # CUDA Library paths
 # /usr/local/cuda-11.2/lib64/libOpenCL.so
 # /usr/local/cuda-11.2/include/

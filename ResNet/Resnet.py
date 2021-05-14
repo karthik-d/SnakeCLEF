@@ -25,8 +25,8 @@ import os
 
 #df_train = pd.read_csv('trainonly_metadata.csv')
 #df_test = pd.read_csv('valonly_metadata.csv')
-df_train = pd.read_csv('trainonly_metadata.csv')
-df_test = pd.read_csv('valonly_metadata.csv')
+df_train = pd.read_csv('train_metadata.csv')
+df_test = pd.read_csv('test_metadata.csv')
 
 BASE_PATH = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
 # In[3]:
@@ -223,7 +223,7 @@ for b in range(n_batches):
 
 train_feats = pd.DataFrame.from_dict(features, orient='index', columns=['feature'])
 #Save for future reference 
-train_feats.to_csv('train_img_features.csv')
+train_feats.to_csv(os.path.join('new', 'train_img_features.csv'))
 train_feats.head()
 
 
@@ -258,9 +258,9 @@ for b in range(n_batches):
 
 
 test_feats = pd.DataFrame.from_dict(features, orient='index', columns=['features'])
-test_feats.to_csv('test_img_features.csv')
+test_feats.to_csv(os.path.join('new', 'test_img_features.csv'))
 test_feats.head()
-
+"""
 
 # In[17]:
 
@@ -337,3 +337,4 @@ submission = pd.DataFrame({
 })
 submission.to_csv('submission.csv', index=False)
 
+"""
