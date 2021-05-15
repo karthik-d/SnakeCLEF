@@ -26,7 +26,9 @@ print(train_feats)
 
 # CSV columns
 #['Unnamed: 0', 'binomial', 'country', 'continent', 'genus', 'family',
-#       'UUID', 'source', 'subset', 'class_id', 'image_path'],
+#       'UUID', 'source', 'subset', 'class_id', 'image_path']
+
+# ['country', 'continent', 'file_path', 'UUID']
 
 df_train_full = pd.merge(df_train, train_feats, how='inner', left_on='UUID', right_on='Unnamed: 0')
 df_test_full = pd.merge(df_test, test_feats, how='inner', left_on='UUID', right_on='Unnamed: 0')
@@ -35,7 +37,7 @@ df_test_full = pd.merge(df_test, test_feats, how='inner', left_on='UUID', right_
 #test = df_test_full.drop(['image_name','patient_id'],axis=1)
 #Drop the unwanted columns
 train = df_train_full.drop(['Unnamed: 0', 'binomial', 'genus', 'family', 'UUID', 'source', 'subset', 'image_path'], axis=1)
-test = df_test_full.drop(['Unnamed: 0', 'binomial', 'genus', 'family', 'UUID', 'source', 'subset', 'image_path'],axis=1)
+test = df_test_full.drop(['UUID', 'file_path'], axis=1)
 
 print("TRAIN")
 print(train)
@@ -78,9 +80,9 @@ for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train[features], tra
         device='gpu',
 		objective='multiclass',
 		num_classes=772,
-		num_iterations=300,
+		num_iterations=100,
 		learning_rate=0.001,
-		num_leaves=50,
+		num_leaves=256,
 		random_state=23,
 		colsample_bytree=0.5,
 		max_depth=8
