@@ -10,13 +10,17 @@ import os
 
 RESULT_PATH = os.path.join(os.getcwd(), 'Results')
 
-df_train = pd.read_csv('trainonly_metadata.csv')
-df_test = pd.read_csv('valonly_metadata.csv')
+# df_train = pd.read_csv('trainonly_metadata.csv')
+# df_test = pd.read_csv('valonly_metadata.csv')
+df_train = pd.read_csv('train_metadata.csv')
+df_test = pd.read_csv('test_metadata.csv')
+
 print(df_train.info())
 print(df_train.loc[:,['UUID', 'country', 'continent']])
 
 train_feats = pd.read_csv('train_img_features.csv')
 test_feats = pd.read_csv('test_img_features.csv')
+
 print(train_feats.info())
 print(train_feats)
 
@@ -62,7 +66,11 @@ sub_preds = np.zeros(test.shape[0])
 feature_importance_df = pd.DataFrame()
 features = [f for f in train.columns if f != 'class_id']
 
-
+"""
+leaves -> 2^depth
+depth -> 8
+iter -> 50
+"""
 for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train[features], train['class_id'])):
     train_X, train_y = train[features].iloc[train_idx], train['class_id'].iloc[train_idx]
     valid_X, valid_y = train[features].iloc[valid_idx], train['class_id'].iloc[valid_idx]

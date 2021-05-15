@@ -29,6 +29,7 @@ df_train = pd.read_csv('train_metadata.csv')
 df_test = pd.read_csv('test_metadata.csv')
 
 BASE_PATH = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
+TEST_PATH = os.path.abspath(os.path.join(BASE_PATH, 'testset'))
 # In[3]:
 
 
@@ -92,8 +93,8 @@ def resize_image(img):
 # In[8]:
 
 
-def load_image(img_path):
-	img_path = os.path.join(BASE_PATH, img_path[1:])
+def load_image(prefix, img_path):
+	img_path = os.path.join(prefix, img_path[1:])
 	img = cv2.imread(img_path)
 	img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 	new_img = resize_image(img)
@@ -166,7 +167,7 @@ def create_model(model_name, include_top, weights, input_shape, n_out):
         base_model = InceptionResNetV2(include_top=include_top,weights='imagenet',input_tensor=None,input_shape=(IMAGE_SIZE[0],IMAGE_SIZE[1],3))
         x = Flatten()(base_model.output) 
         x = Dense(1024, activation='relu')(x) 
-        x = Dropout(0.5)(x) 
+        x = Dropout(0.2)(x) # 0.2
         output_layer = Dense(n_out, activation='sigmoid', name='final_output')(x)
         model = Model(inputs=base_model.input, outputs=output_layer)
         image_size = (299, 299)
@@ -196,7 +197,7 @@ def create_model(model_name, include_top, weights, input_shape, n_out):
 
 
 # m = create_model("inceptionresnetv2", False, 'imagenet',input_shape=(299,299,3), n_out=1)
-m = create_model("inceptionresnetv2", False, 'imagenet',input_shape=(299,299,3), n_out=1)
+m = create_model("inceptionresnetv2", False, 'imagenet',input_shape=(299,299,3), n_out=772)
 
 
 # In[12]:
@@ -210,16 +211,17 @@ for b in range(n_batches):
 	batch_ids = train_img_ids[start:end]
 	batch_images = np.zeros((len(batch_paths),img_size,img_size,3))
 	for i,img_path in enumerate(batch_paths):
-		batch_images[i] = load_image(img_path)
+		batch_images[i] = load_image(BASE_PATH, img_path)
 	batch_preds = m.predict(batch_images)
 	for i,img_id in enumerate(batch_ids):
 		features[img_id] = batch_preds[i]
-	if(b%500==0):
+	if(b%200==0):
 		print("Batch", (b+1), "done")
+		print(batch_preds)
 
 
 # In[13]:
-
+# n = 772
 
 train_feats = pd.DataFrame.from_dict(features, orient='index', columns=['feature'])
 #Save for future reference 
@@ -247,12 +249,13 @@ for b in range(n_batches):
 	batch_ids = test_img_ids[start:end]
 	batch_images = np.zeros((len(batch_paths),img_size,img_size,3))
 	for i,img_path in enumerate(batch_paths):
-		batch_images[i] = load_image(img_path)
+		batch_images[i] = load_image(TEST_PATH, img_path)
 	batch_preds = m.predict(batch_images)
 	for i,img_id in enumerate(batch_ids):
 		features[img_id] = batch_preds[i]
-	if(b%500==0):
+	if(b%200==0):
 		print("Batch", (b+1), "done")
+		print(batch_preds)
 
 # In[16]:
 
