@@ -165,10 +165,14 @@ def create_model(model_name, include_top, weights, input_shape, n_out):
     elif model_name == "inceptionresnetv2":
         print("Extract Features using "+model_name)
         base_model = InceptionResNetV2(include_top=include_top,weights='imagenet',input_tensor=None,input_shape=(IMAGE_SIZE[0],IMAGE_SIZE[1],3))
+        inter_x = GlobalAveragePooling2D() (base_model.output)
+        # Feature extraction from intermediate layer
+        inter_model = Model(inputs=base_model.input, outputs=inter_x)
+        # Build rest of the model
         x = Flatten()(base_model.output) 
-        x = Dense(1024, activation='relu')(x) 
-        x = Dropout(0.2)(x) # 0.2
-        output_layer = Dense(n_out, activation='sigmoid', name='final_output')(x)
+        y = Dense(1024, activation='relu')(x) 
+        y = Dropout(0.2)(y) # 0.2
+        output_layer = Dense(n_out, activation='sigmoid', name='final_output')(y)
         model = Model(inputs=base_model.input, outputs=output_layer)
         image_size = (299, 299)
     elif model_name == "mobilenet":
@@ -190,20 +194,22 @@ def create_model(model_name, include_top, weights, input_shape, n_out):
         image_size = (299, 299)
     else:
         base_model = None
-    return model
+    return model, inter_model
 
 
 # In[11]:
 
 
 # m = create_model("inceptionresnetv2", False, 'imagenet',input_shape=(299,299,3), n_out=1)
-m = create_model("inceptionresnetv2", False, 'imagenet',input_shape=(299,299,3), n_out=772)
-
+m, inter = create_model("inceptionresnetv2", False, 'imagenet',input_shape=(299,299,3), n_out=772)
+m.summary()
+inter.summary()
 
 # In[12]:
 
 
 features = {}
+features_inter = dict()
 for b in range(n_batches):
 	start = b*batch_size
 	end = (b+1)*batch_size
@@ -213,20 +219,32 @@ for b in range(n_batches):
 	for i,img_path in enumerate(batch_paths):
 		batch_images[i] = load_image(BASE_PATH, img_path)
 	batch_preds = m.predict(batch_images)
+	batch_preds_inter = inter.predict(batch_images)
 	for i,img_id in enumerate(batch_ids):
 		features[img_id] = batch_preds[i]
+		features_inter[img_id] = batch_preds_inter[i]
 	if(b%200==0):
 		print("Batch", (b+1), "done")
-		print(batch_preds)
+		if(b%10000==0):
+			# Temporary write
+			train_feats = pd.DataFrame.from_dict(features, orient='index', columns=['feature_{num}'.format(num=i) for i in range(772)])
+			train_feats.to_csv(os.path.join('new', 'train_img_features.csv'))
+			train_feats.head()
+			train_feats_inter = pd.DataFrame.from_dict(features_inter, orient='index', columns=['feature_{num}'.format(num=i) for i in range(1536)])
+			train_feats_inter.to_csv(os.path.join('new', 'train_img_features_inter.csv'))
+			train_feats_inter.head()
 
 
 # In[13]:
 # n = 772
 
-train_feats = pd.DataFrame.from_dict(features, orient='index', columns=['feature'])
-#Save for future reference 
+train_feats = pd.DataFrame.from_dict(features, orient='index', columns=['feature_{num}'.format(num=i) for i in range(772)])
 train_feats.to_csv(os.path.join('new', 'train_img_features.csv'))
 train_feats.head()
+
+train_feats_inter = pd.DataFrame.from_dict(features_inter, orient='index', columns=['feature_{num}'.format(num=i) for i in range(1536)])
+train_feats_inter.to_csv(os.path.join('new', 'train_img_features_inter.csv'))
+train_feats_inter.head()
 
 
 # In[14]:
@@ -242,6 +260,7 @@ n_batches = len(test_img_paths)//batch_size + 1
 
 
 features = {}
+features_inter = dict()
 for b in range(n_batches):
 	start = b*batch_size
 	end = (b+1)*batch_size
@@ -251,18 +270,32 @@ for b in range(n_batches):
 	for i,img_path in enumerate(batch_paths):
 		batch_images[i] = load_image(TEST_PATH, img_path)
 	batch_preds = m.predict(batch_images)
+	batch_preds_inter = inter.predict(batch_images)
 	for i,img_id in enumerate(batch_ids):
 		features[img_id] = batch_preds[i]
+		features_inter[img_id] = batch_preds_inter[i]
 	if(b%200==0):
 		print("Batch", (b+1), "done")
-		print(batch_preds)
+		if(b%10000==0):
+			# Temporary write
+			test_feats = pd.DataFrame.from_dict(features, orient='index', columns=['feature_{num}'.format(num=i) for i in range(772)])
+			test_feats.to_csv(os.path.join('new', 'test_img_features.csv'))
+			test_feats.head()
+			test_feats_inter = pd.DataFrame.from_dict(features, orient='index', columns=['feature_{num}'.format(num=i) for i in range(1536)])
+			test_feats_inter.to_csv(os.path.join('new', 'test_img_features_inter.csv'))
+			test_feats_inter.head()
 
 # In[16]:
 
 
-test_feats = pd.DataFrame.from_dict(features, orient='index', columns=['features'])
+test_feats = pd.DataFrame.from_dict(features, orient='index', columns=['feature_{num}'.format(num=i) for i in range(772)])
 test_feats.to_csv(os.path.join('new', 'test_img_features.csv'))
 test_feats.head()
+
+test_feats_inter = pd.DataFrame.from_dict(features, orient='index', columns=['feature_{num}'.format(num=i) for i in range(1536)])
+test_feats_inter.to_csv(os.path.join('new', 'test_img_features_inter.csv'))
+test_feats_inter.head()
+
 """
 
 # In[17]:
