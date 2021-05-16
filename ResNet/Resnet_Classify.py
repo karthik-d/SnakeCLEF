@@ -88,14 +88,14 @@ for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train[features], tra
         device='cpu',
 		objective='multiclass',
 		num_classes=772,
-		num_iterations=25,
+		num_iterations=5,
 		learning_rate=0.006,
 		num_leaves=128,
 		random_state=23,
 		max_depth=-1,
 		colsample_bytree=0.8
     )
-    """,
+    """
 		n_estimators=1000,
         learning_rate=0.001,
         max_depth=8,
@@ -103,14 +103,21 @@ for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train[features], tra
         num_leaves=50,
         random_state=23
     """
-    saved_model = None
-    for i in range(20):	
+    saved_model = 'run_7_4.model'
+    for i in range(5, 20):	
         print('*****Fold: {}*****'.format(n_fold))
         clf.fit(train_X, train_y, eval_set=[(train_X, train_y), (valid_X, valid_y)], 
-				eval_metric= 'multi_logloss', verbose=1, init_model=saved_model, callbacks=[print_evaluation(period=5)])
+				eval_metric= 'multi_logloss', verbose=1, init_model=saved_model)
+        oof_preds[valid_idx] = clf.predict(valid_X, num_iteration=clf.best_iteration_)
+        sub_preds = clf.predict(test[features], num_iteration=clf.best_iteration_)
         print('Fold %2d Accuracy : %.6f' % (n_fold + 1, accuracy_score(valid_y, oof_preds[valid_idx])))
         saved_model = "run_7_{0}.model".format(i)
         clf.booster_.save_model(saved_model)
+        submission = pd.DataFrame({
+		"UUID": df_test.UUID, 
+		"prediction": sub_preds
+        })
+        submission.to_csv(os.path.join(RESULT_PATH, 'submission_{fold_num}.csv'.format(fold_num=i)), index=False)
 
 
     oof_preds[valid_idx] = clf.predict(valid_X, num_iteration=clf.best_iteration_)
