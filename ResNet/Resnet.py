@@ -29,7 +29,7 @@ df_train = pd.read_csv('train_metadata.csv')
 df_test = pd.read_csv('test_metadata.csv')
 
 BASE_PATH = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
-TEST_PATH = os.path.abspath(os.path.join(BASE_PATH, 'testset'))
+TEST_PATH = os.path.abspath(os.path.join(BASE_PATH, 'Datasets', 'testset'))
 # In[3]:
 
 
@@ -94,7 +94,7 @@ def resize_image(img):
 
 
 def load_image(prefix, img_path):
-	img_path = os.path.join(prefix, img_path[1:])
+	img_path = os.path.join(prefix, img_path)
 	img = cv2.imread(img_path)
 	img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 	new_img = resize_image(img)
@@ -207,10 +207,10 @@ inter.summary()
 
 # In[12]:
 
-
+"""
 features = {}
 features_inter = dict()
-for b in range(n_batches):
+for b in range(10001, n_batches):
 	start = b*batch_size
 	end = (b+1)*batch_size
 	batch_paths = train_img_paths[start:end]
@@ -245,6 +245,7 @@ train_feats.head()
 train_feats_inter = pd.DataFrame.from_dict(features_inter, orient='index', columns=['feature_{num}'.format(num=i) for i in range(1536)])
 train_feats_inter.to_csv(os.path.join('new', 'train_img_features_inter.csv'))
 train_feats_inter.head()
+"""
 
 
 # In[14]:
@@ -252,7 +253,7 @@ train_feats_inter.head()
 
 #test_img_ids = df_test.image_name.values
 #n_batches = len(test_img_ids)//batch_size + 1
-test_img_paths = df_test.image_path.values
+test_img_paths = df_test.file_path.values
 test_img_ids = df_test.UUID.values
 n_batches = len(test_img_paths)//batch_size + 1
 
@@ -269,30 +270,22 @@ for b in range(n_batches):
 	batch_images = np.zeros((len(batch_paths),img_size,img_size,3))
 	for i,img_path in enumerate(batch_paths):
 		batch_images[i] = load_image(TEST_PATH, img_path)
-	batch_preds = m.predict(batch_images)
+	#batch_preds = m.predict(batch_images)
 	batch_preds_inter = inter.predict(batch_images)
 	for i,img_id in enumerate(batch_ids):
-		features[img_id] = batch_preds[i]
+		#features[img_id] = batch_preds[i]
 		features_inter[img_id] = batch_preds_inter[i]
 	if(b%200==0):
 		print("Batch", (b+1), "done")
-		if(b%10000==0):
-			# Temporary write
-			test_feats = pd.DataFrame.from_dict(features, orient='index', columns=['feature_{num}'.format(num=i) for i in range(772)])
-			test_feats.to_csv(os.path.join('new', 'test_img_features.csv'))
-			test_feats.head()
-			test_feats_inter = pd.DataFrame.from_dict(features, orient='index', columns=['feature_{num}'.format(num=i) for i in range(1536)])
-			test_feats_inter.to_csv(os.path.join('new', 'test_img_features_inter.csv'))
-			test_feats_inter.head()
 
 # In[16]:
 
-
+"""
 test_feats = pd.DataFrame.from_dict(features, orient='index', columns=['feature_{num}'.format(num=i) for i in range(772)])
 test_feats.to_csv(os.path.join('new', 'test_img_features.csv'))
 test_feats.head()
-
-test_feats_inter = pd.DataFrame.from_dict(features, orient='index', columns=['feature_{num}'.format(num=i) for i in range(1536)])
+"""
+test_feats_inter = pd.DataFrame.from_dict(features_inter, orient='index', columns=['feature_{num}'.format(num=i) for i in range(1536)])
 test_feats_inter.to_csv(os.path.join('new', 'test_img_features_inter.csv'))
 test_feats_inter.head()
 

@@ -18,8 +18,8 @@ df_test = pd.read_csv('test_metadata.csv')
 print(df_train.info())
 print(df_train.loc[:,['UUID', 'country', 'continent']])
 
-train_feats = pd.read_csv('train_img_features.csv')
-test_feats = pd.read_csv('test_img_features.csv')
+train_feats = pd.read_csv('train_img_features_inter.csv')
+test_feats = pd.read_csv('test_img_features_inter.csv')
 
 print(train_feats.info())
 print(train_feats)
@@ -30,14 +30,16 @@ print(train_feats)
 
 # ['country', 'continent', 'file_path', 'UUID']
 
-df_train_full = pd.merge(df_train, train_feats, how='inner', left_on='UUID', right_on='Unnamed: 0')
+df_train_full = pd.merge(df_train, train_feats, how='inner', left_on='UUID', right_on='Unnamed: 0.1')
 df_test_full = pd.merge(df_test, test_feats, how='inner', left_on='UUID', right_on='Unnamed: 0')
+# print(df_train_full.columns)
+# print(df_test_full.columns)
 
 #train = df_train_full.drop(['image_name','patient_id','diagnosis','benign_malignant'],axis=1)
 #test = df_test_full.drop(['image_name','patient_id'],axis=1)
 #Drop the unwanted columns
-train = df_train_full.drop(['Unnamed: 0', 'binomial', 'genus', 'family', 'UUID', 'source', 'subset', 'image_path'], axis=1)
-test = df_test_full.drop(['UUID', 'file_path'], axis=1)
+train = df_train_full.drop(['Unnamed: 0', 'Unnamed: 0.1', 'binomial', 'genus', 'family', 'UUID', 'source', 'subset', 'image_path'], axis=1)
+test = df_test_full.drop(['Unnamed: 0', 'UUID', 'file_path'], axis=1)
 
 print("TRAIN")
 print(train)
@@ -67,6 +69,7 @@ oof_preds = np.zeros(train.shape[0])    # Out of fold
 sub_preds = np.zeros(test.shape[0])
 feature_importance_df = pd.DataFrame()
 features = [f for f in train.columns if f != 'class_id']
+print(features)
 
 """
 leaves -> 2^depth
@@ -76,15 +79,18 @@ iter -> 50
 for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train[features], train['class_id'])):
     train_X, train_y = train[features].iloc[train_idx], train['class_id'].iloc[train_idx]
     valid_X, valid_y = train[features].iloc[valid_idx], train['class_id'].iloc[valid_idx]
+    # print(train_X)
+    # print(valid_X)
+    # print(train_y)
+    # print(valid_y)
     clf = LGBMClassifier(
-        device='gpu',
+        device='cpu',
 		objective='multiclass',
 		num_classes=772,
 		num_iterations=100,
 		learning_rate=0.001,
 		num_leaves=256,
 		random_state=23,
-		colsample_bytree=0.5,
 		max_depth=8
     )
     """,
