@@ -1,44 +1,16 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
-# This Python 3 environment comes with many helpful analytics libraries installed
-# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
-# For example, here's several helpful packages to load
-
-import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
-
-# Input data files are available in the read-only "../input/" directory
-# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+import numpy as np
+import pandas as pd 
 
 import os
 
-# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
-# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
-
-
-# In[2]:
-
-
-#df_train = pd.read_csv('trainonly_metadata.csv')
-#df_test = pd.read_csv('valonly_metadata.csv')
 df_train = pd.read_csv('train_metadata.csv')
 df_test = pd.read_csv('test_metadata.csv')
 
 BASE_PATH = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
 TEST_PATH = os.path.abspath(os.path.join(BASE_PATH, 'Datasets', 'testset'))
-# In[3]:
-
 
 print(df_train.info())
 print(df_test.info())
-
-
-# In[4]:
-
 
 import pandas as pd
 import numpy as np
@@ -62,16 +34,11 @@ from lightgbm import LGBMClassifier
 import tensorflow as tf
 tf.test.gpu_device_name()
 
-
-# In[5]:
-
 device_name = tf.test.gpu_device_name()
 if "GPU" not in device_name:
     print(device_name)
     print("GPU device not found")
 print('Found GPU at: {}'.format(device_name))
-
-# In[7]:
 
 
 #Size to resize(256,256,3)
@@ -106,8 +73,7 @@ def load_image(prefix, img_path):
 
 
 img_size = 299
-batch_size = 8 #16 images per batch
-#train_img_ids = df_train.image_name.values
+batch_size = 8 #8 images per batch
 train_img_paths = df_train.image_path.values
 train_img_ids = df_train.UUID.values
 n_batches = len(train_img_paths)//batch_size + 1
@@ -165,8 +131,8 @@ def create_model(model_name, include_top, weights, input_shape, n_out):
     elif model_name == "inceptionresnetv2":
         print("Extract Features using "+model_name)
         base_model = InceptionResNetV2(include_top=include_top,weights='imagenet',input_tensor=None,input_shape=(IMAGE_SIZE[0],IMAGE_SIZE[1],3))
-        inter_x = GlobalAveragePooling2D() (base_model.output)
         # Feature extraction from intermediate layer
+        inter_x = GlobalAveragePooling2D() (base_model.output)
         inter_model = Model(inputs=base_model.input, outputs=inter_x)
         # Build rest of the model
         x = Flatten()(base_model.output) 
@@ -202,15 +168,16 @@ def create_model(model_name, include_top, weights, input_shape, n_out):
 
 # m = create_model("inceptionresnetv2", False, 'imagenet',input_shape=(299,299,3), n_out=1)
 m, inter = create_model("inceptionresnetv2", False, 'imagenet',input_shape=(299,299,3), n_out=772)
-m.summary()
+# 'inter' extracts 1536 features
+#m.summary()
 inter.summary()
 
 # In[12]:
 
-"""
+
 features = {}
 features_inter = dict()
-for b in range(10001, n_batches):
+for b in range(n_batches):
 	start = b*batch_size
 	end = (b+1)*batch_size
 	batch_paths = train_img_paths[start:end]
@@ -225,14 +192,6 @@ for b in range(10001, n_batches):
 		features_inter[img_id] = batch_preds_inter[i]
 	if(b%200==0):
 		print("Batch", (b+1), "done")
-		if(b%10000==0):
-			# Temporary write
-			train_feats = pd.DataFrame.from_dict(features, orient='index', columns=['feature_{num}'.format(num=i) for i in range(772)])
-			train_feats.to_csv(os.path.join('new', 'train_img_features.csv'))
-			train_feats.head()
-			train_feats_inter = pd.DataFrame.from_dict(features_inter, orient='index', columns=['feature_{num}'.format(num=i) for i in range(1536)])
-			train_feats_inter.to_csv(os.path.join('new', 'train_img_features_inter.csv'))
-			train_feats_inter.head()
 
 
 # In[13]:
@@ -245,7 +204,7 @@ train_feats.head()
 train_feats_inter = pd.DataFrame.from_dict(features_inter, orient='index', columns=['feature_{num}'.format(num=i) for i in range(1536)])
 train_feats_inter.to_csv(os.path.join('new', 'train_img_features_inter.csv'))
 train_feats_inter.head()
-"""
+
 
 
 # In[14]:
@@ -270,10 +229,10 @@ for b in range(n_batches):
 	batch_images = np.zeros((len(batch_paths),img_size,img_size,3))
 	for i,img_path in enumerate(batch_paths):
 		batch_images[i] = load_image(TEST_PATH, img_path)
-	#batch_preds = m.predict(batch_images)
+	batch_preds = m.predict(batch_images)
 	batch_preds_inter = inter.predict(batch_images)
 	for i,img_id in enumerate(batch_ids):
-		#features[img_id] = batch_preds[i]
+		features[img_id] = batch_preds[i]
 		features_inter[img_id] = batch_preds_inter[i]
 	if(b%200==0):
 		print("Batch", (b+1), "done")
@@ -289,81 +248,4 @@ test_feats_inter = pd.DataFrame.from_dict(features_inter, orient='index', column
 test_feats_inter.to_csv(os.path.join('new', 'test_img_features_inter.csv'))
 test_feats_inter.head()
 
-"""
 
-# In[17]:
-
-# CSV columns
-#['Unnamed: 0', 'binomial', 'country', 'continent', 'genus', 'family',
-#       'UUID', 'source', 'subset', 'class_id', 'image_path'],
-
-df_train_full = pd.merge(df_train, train_feats, how='inner', left_on='UUID', right_index=True)
-df_test_full = pd.merge(df_test, test_feats, how='inner', left_on='UUID', right_index=True)
-
-#train = df_train_full.drop(['image_name','patient_id','diagnosis','benign_malignant'],axis=1)
-#test = df_test_full.drop(['image_name','patient_id'],axis=1)
-#Drop the unwanted columns
-train = df_train_full.drop(['Unnamed: 0', 'binomial', 'genus', 'family', 'UUID', 'source', 'subset', 'image_path'], axis=1)
-test = df_test_full.drop(['Unnamed: 0', 'binomial', 'genus', 'family', 'UUID', 'source', 'subset', 'image_path'],axis=1)
-
-print(train)
-print(test)
-
-#Label Encode categorical features
-train.country.fillna('unknown',inplace=True)
-test.country.fillna('unknown',inplace=True)
-train.continent.fillna('unknown',inplace=True)
-test.continent.fillna('unknown',inplace=True)
-le_country = LabelEncoder()
-le_continent = LabelEncoder()
-train.country = le_country.fit_transform(train.country)
-test.country = le_country.transform(test.country)
-train.continent = le_continent.fit_transform(train.continent)
-test.continent = le_continent.transform(test.continent)
-# In[18]:
-
-
-folds = StratifiedKFold(n_splits= 5, shuffle=True)
-oof_preds = np.zeros(train.shape[0])    # Out of fold
-sub_preds = np.zeros(test.shape[0])
-feature_importance_df = pd.DataFrame()
-features = [f for f in train.columns if f != 'class_id']
-for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train[features], train['class_id'])):
-    train_X, train_y = train[features].iloc[train_idx], train['class_id'].iloc[train_idx]
-    valid_X, valid_y = train[features].iloc[valid_idx], train['class_id'].iloc[valid_idx]
-    clf = LGBMClassifier(
-        #device='gpu',
-        n_estimators=1000,
-        learning_rate=0.001,
-        max_depth=8,
-        colsample_bytree=0.5,
-        num_leaves=50,
-        random_state=23
-    )
-    print('*****Fold: {}*****'.format(n_fold))
-    clf.fit(train_X, train_y, eval_set=[(train_X, train_y), (valid_X, valid_y)], 
-            eval_metric= 'auc', verbose= 20, early_stopping_rounds= 20)
-
-    oof_preds[valid_idx] = clf.predict_proba(valid_X, num_iteration=clf.best_iteration_)[:, 1]
-    sub_preds += clf.predict_proba(test[features], num_iteration=clf.best_iteration_)[:, 1] / folds.n_splits
-
-    fold_importance_df = pd.DataFrame()
-    fold_importance_df["feature"] = features
-    fold_importance_df["importance"] = clf.feature_importances_
-    fold_importance_df["fold"] = n_fold + 1
-    feature_importance_df = pd.concat([feature_importance_df, fold_importance_df], axis=0)
-    print('Fold %2d AUC : %.6f' % (n_fold + 1, roc_auc_score(valid_y, oof_preds[valid_idx])))
-    del clf, train_X, train_y, valid_X, valid_y
-    gc.collect()
-
-
-# In[19]:
-
-
-submission = pd.DataFrame({
-    "UUID": df_test.UUID, 
-    "prediction": sub_preds
-})
-submission.to_csv('submission.csv', index=False)
-
-"""

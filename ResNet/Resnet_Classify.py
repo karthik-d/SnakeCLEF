@@ -1,5 +1,5 @@
 import pandas as pd
-from lightgbm import LGBMClassifier
+from lightgbm import LGBMClassifier, print_evaluation
 #from xgboost import XGBClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedKFold
@@ -71,6 +71,7 @@ feature_importance_df = pd.DataFrame()
 features = [f for f in train.columns if f != 'class_id']
 print(features)
 
+
 """
 leaves -> 2^depth
 depth -> 8
@@ -87,11 +88,12 @@ for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train[features], tra
         device='cpu',
 		objective='multiclass',
 		num_classes=772,
-		num_iterations=100,
-		learning_rate=0.001,
-		num_leaves=256,
+		num_iterations=25,
+		learning_rate=0.006,
+		num_leaves=128,
 		random_state=23,
-		max_depth=8
+		max_depth=-1,
+		colsample_bytree=0.8
     )
     """,
 		n_estimators=1000,
@@ -101,9 +103,15 @@ for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train[features], tra
         num_leaves=50,
         random_state=23
     """
-    print('*****Fold: {}*****'.format(n_fold))
-    clf.fit(train_X, train_y, eval_set=[(train_X, train_y), (valid_X, valid_y)], 
-            eval_metric= 'multi_logloss', verbose=1)
+    saved_model = None
+    for i in range(20):	
+        print('*****Fold: {}*****'.format(n_fold))
+        clf.fit(train_X, train_y, eval_set=[(train_X, train_y), (valid_X, valid_y)], 
+				eval_metric= 'multi_logloss', verbose=1, init_model=saved_model, callbacks=[print_evaluation(period=5)])
+        print('Fold %2d Accuracy : %.6f' % (n_fold + 1, accuracy_score(valid_y, oof_preds[valid_idx])))
+        saved_model = "run_7_{0}.model".format(i)
+        clf.booster_.save_model(saved_model)
+
 
     oof_preds[valid_idx] = clf.predict(valid_X, num_iteration=clf.best_iteration_)
     sub_preds = clf.predict(test[features], num_iteration=clf.best_iteration_)#[:, 1] / folds.n_splits
@@ -118,7 +126,7 @@ for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train[features], tra
     fold_importance_df["fold"] = n_fold + 1
     feature_importance_df = pd.concat([feature_importance_df, fold_importance_df], axis=0)
     feature_importance_df.to_csv(os.path.join(RESULT_PATH, 'feature_importance.csv'))
-    print('Fold %2d Accuracy : %.6f' % (n_fold + 1, accuracy_score(valid_y, oof_preds[valid_idx])))
+    
     del clf, train_X, train_y, valid_X, valid_y
     gc.collect()
     
@@ -164,3 +172,5 @@ submission.to_csv('submission.csv', index=False)
 # CUDA Library paths
 # /usr/local/cuda-11.2/lib64/libOpenCL.so
 # /usr/local/cuda-11.2/include/
+
+# scp ~/Downloads/SnakeCLEF/ResNet/Resnet_Classify.py mirunap@mlrg-dl01.ssn.edu.in:~/SnakeCLEF2021/AugmentedModels/ResNet/
