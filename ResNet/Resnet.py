@@ -3,14 +3,14 @@ import pandas as pd
 
 import os
 
-df_train = pd.read_csv('train_metadata.csv')
-df_test = pd.read_csv('test_metadata.csv')
+#df_train = pd.read_csv('train_metadata.csv')
+#df_test = pd.read_csv('test_metadata.csv')
 
 BASE_PATH = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
 TEST_PATH = os.path.abspath(os.path.join(BASE_PATH, 'Datasets', 'testset'))
 
-print(df_train.info())
-print(df_test.info())
+#print(df_train.info())
+#print(df_test.info())
 
 import pandas as pd
 import numpy as np
@@ -174,7 +174,7 @@ inter.summary()
 
 # In[12]:
 
-
+'''
 features = {}
 features_inter = dict()
 for b in range(n_batches):
@@ -248,4 +248,4 @@ test_feats_inter = pd.DataFrame.from_dict(features_inter, orient='index', column
 test_feats_inter.to_csv(os.path.join('new', 'test_img_features_inter.csv'))
 test_feats_inter.head()
 
-
+'''
