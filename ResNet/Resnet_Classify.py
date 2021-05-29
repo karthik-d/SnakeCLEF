@@ -186,3 +186,4 @@ submission.to_csv('submission.csv', index=False)
 # /usr/local/cuda-11.2/include/
 
 # scp ~/Downloads/SnakeCLEF/ResNet/Resnet_Classify.py mirunap@mlrg-dl01.ssn.edu.in:~/SnakeCLEF2021/AugmentedModels/ResNet/
+# https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=265&date=29-05-2021
