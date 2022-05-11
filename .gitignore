@@ -3,4 +3,5 @@ Datasets/
 dynamic/
 *.zip
 *token*
+.token
 
