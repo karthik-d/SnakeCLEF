@@ -1,3 +1,3 @@
 # SnakeCLEF
 
-Submission material for the SnakeCLEF contest 2021
+Notebooks and references for the submission to SnakeCLEF, 2022 edition. 
