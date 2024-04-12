@@ -1,6 +1,6 @@
 # SnakeCLEF 2021
 
-Notebooks and references for the submission to SnakeCLEF, 2022 edition. 
+Notebooks and references for the submission to SnakeCLEF, 2021 edition. 
 
 ## Cite Us
 
